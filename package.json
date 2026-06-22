@@ -1,6 +1,6 @@
 {
   "name": "api-preview",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "ApiPreview — 轻量级 Swagger/OpenAPI 桌面阅读器 + 轻调试工具",
   "type": "module",
   "main": "dist-electron/main.js",
@@ -11,7 +11,9 @@
     "dist:win": "npm run build && electron-builder --win nsis",
     "preview": "vite preview",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "release:tag": "node -p \"const v=require('./package.json').version; require('child_process').execSync('git add package.json && git commit -m \\\"chore: bump version to '+v+'\\\" && git tag v'+v+' && git push origin --tags', {stdio:'inherit', shell:true})\"",
+    "preversion": "git diff --quiet HEAD || (echo Please commit/stash changes first && exit 1)"
   },
   "dependencies": {
     "vue": "^3.5.13"
