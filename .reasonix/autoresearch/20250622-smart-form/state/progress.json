@@ -1,0 +1,28 @@
+{
+  "goal": "Phase 3: Smart Request Builder — Schema-driven form generation for Try It",
+  "scope": [
+    "schemaFormEngine.ts — OpenAPI schema → FormField[] converter",
+    "SmartForm.vue — Auto-rendered form from FormField[]",
+    "FormField.vue — Recursive field renderer (string/number/boolean/array/object)",
+    "ModeSwitch.vue — FORM / JSON toggle",
+    "ApiDetail.vue — Refactor Try It panel for dual-mode + SmartForm"
+  ],
+  "non_goals": [
+    "No Apifox/Postman clone",
+    "No project management",
+    "No mock/test/sync"
+  ],
+  "success_criteria": {
+    "requestBody_auto_form": true,
+    "path_params_auto_ui": true,
+    "form_json_switchable": true,
+    "nested_object_parsing": true,
+    "example_auto_fill": true,
+    "send_works": true,
+    "build_passes": true,
+    "tests_pass": "35/35"
+  },
+  "status": "completed",
+  "iteration": 1,
+  "completion_summary": "All 6 steps completed in 1 iteration. 4 new files created, 1 core file refactored. 41 modules build, 35 tests pass."
+}

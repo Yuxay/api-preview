@@ -1,0 +1,565 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ============================================================
+   Design Tokens — 全局设计变量
+   ============================================================ */
+
+:root {
+  /* ── 色彩系统 ── */
+  color-scheme: dark;
+  --ui-bg: #0f172a;
+  --ui-bg-alt: #111827;
+  --ui-panel: #1e293b;
+  --ui-panel-alt: #172033;
+  --ui-panel-elevated: rgba(17, 26, 46, 0.92);
+  --ui-glass: rgba(13, 20, 36, 0.82);
+  --ui-input: rgba(2, 6, 23, 0.55);
+  --ui-inset: rgba(2, 6, 23, 0.4);
+  --ui-sunken: rgba(2, 6, 23, 0.58);
+  --ui-popover: #101a2e;
+  --ui-border: rgba(148, 163, 184, 0.16);
+  --ui-border-strong: rgba(148, 163, 184, 0.26);
+  --ui-text: #e2e8f0;
+  --ui-text-muted: #94a3b8;
+  --ui-text-soft: #64748b;
+  --ui-code-text: #cbd5e1;
+  --ui-accent: #38bdf8;
+  --ui-accent-hover: #0ea5e9;
+  --ui-accent-soft: rgba(56, 189, 248, 0.14);
+  --ui-btn: rgba(148, 163, 184, 0.1);
+  --ui-btn-hover: rgba(148, 163, 184, 0.18);
+
+  /* ── 语义色 ── */
+  --ui-success: #34d399;
+  --ui-success-soft: rgba(52, 211, 153, 0.14);
+  --ui-warning: #fbbf24;
+  --ui-warning-soft: rgba(251, 191, 36, 0.14);
+  --ui-danger: #f87171;
+  --ui-danger-soft: rgba(248, 113, 113, 0.14);
+
+  /* ── 圆角尺度 ──
+     使用规则:
+     · sm (4px)  — 行内标记、徽章、小标签
+     · md (6px)  — 输入框、小按钮
+     · lg (8px)  — 面板内卡片、按钮组、分段控件
+     · xl (12px) — 顶层面板、玻璃栏、主卡片
+     · 2xl (16px)— 弹窗、下拉浮层
+  ── */
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+  --radius-2xl: 16px;
+
+  /* ── 阴影尺度 ── */
+  --shadow-xs: 0 1px 2px rgba(2, 6, 23, 0.18);
+  --shadow-sm: 0 2px 8px rgba(2, 6, 23, 0.22);
+  --shadow-md: 0 10px 24px rgba(2, 6, 23, 0.32);
+  --shadow-lg: 0 18px 44px -20px rgba(0, 0, 0, 0.7);
+  --shadow-xl: 0 24px 56px -24px rgba(0, 0, 0, 0.8);
+  --ui-shadow: var(--shadow-lg);
+
+  /* ── 过渡缓动 ── */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --duration-fast: 150ms;
+  --duration-base: 200ms;
+  --duration-slow: 300ms;
+  --duration-layout: 350ms;
+}
+
+html.dark {
+  color-scheme: dark;
+}
+
+html.light {
+  color-scheme: light;
+  --ui-bg: #f8fafc;
+  --ui-bg-alt: #eef2f7;
+  --ui-panel: #ffffff;
+  --ui-panel-alt: #f8fafc;
+  --ui-panel-elevated: #ffffff;
+  --ui-glass: rgba(255, 255, 255, 0.85);
+  --ui-input: #ffffff;
+  --ui-inset: #f6f8fb;
+  --ui-sunken: #f1f5f9;
+  --ui-popover: #ffffff;
+  --ui-border: rgba(148, 163, 184, 0.28);
+  --ui-border-strong: rgba(100, 116, 139, 0.4);
+  --ui-text: #0f172a;
+  --ui-text-muted: #475569;
+  --ui-text-soft: #64748b;
+  --ui-code-text: #334155;
+  --ui-accent: #0284c7;
+  --ui-accent-hover: #0369a1;
+  --ui-accent-soft: rgba(2, 132, 199, 0.1);
+  --ui-btn: #f1f5f9;
+  --ui-btn-hover: #e2e8f0;
+  --ui-success: #059669;
+  --ui-success-soft: rgba(5, 150, 105, 0.1);
+  --ui-warning: #d97706;
+  --ui-warning-soft: rgba(217, 119, 6, 0.1);
+  --ui-danger: #dc2626;
+  --ui-danger-soft: rgba(220, 38, 38, 0.1);
+  --ui-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 14px 30px -16px rgba(15, 23, 42, 0.18);
+}
+
+@layer base {
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  html, body, #app {
+    height: 100%;
+    overflow: hidden;
+  }
+
+  body {
+    font-family: 'IBM Plex Sans', 'Inter', 'Segoe UI', system-ui, sans-serif;
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--ui-text);
+    background:
+      radial-gradient(circle at top left, rgba(56, 189, 248, 0.05), transparent 24%),
+      linear-gradient(180deg, var(--ui-bg-alt) 0%, var(--ui-bg) 100%);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  html.light body {
+    background:
+      radial-gradient(circle at top left, rgba(14, 165, 233, 0.08), transparent 24%),
+      linear-gradient(180deg, var(--ui-bg-alt) 0%, var(--ui-bg) 100%);
+  }
+
+  button,
+  input,
+  textarea,
+  select {
+    font: inherit;
+  }
+
+  ::selection {
+    background: rgba(56, 189, 248, 0.24);
+    color: #f8fafc;
+  }
+}
+
+@layer components {
+  .panel-surface {
+    @apply rounded-xl border;
+    background-color: var(--ui-panel-elevated);
+    border-color: var(--ui-border);
+    box-shadow: var(--ui-shadow);
+  }
+
+  /* 嵌套在面板内的次级卡片（参数块、响应块等） */
+  .surface-inset {
+    @apply rounded-lg border;
+    background-color: var(--ui-inset);
+    border-color: var(--ui-border);
+  }
+
+  /* 凹陷的代码 / JSON 展示区 */
+  .surface-sunken {
+    @apply rounded-lg border;
+    background-color: var(--ui-sunken);
+    border-color: var(--ui-border);
+    color: var(--ui-code-text);
+  }
+
+  /* 浮层（历史下拉、菜单）—— 必须完全不透明 */
+  .popover-surface {
+    @apply overflow-hidden rounded-xl border;
+    background-color: var(--ui-popover);
+    border-color: var(--ui-border-strong);
+    box-shadow: var(--ui-shadow);
+  }
+
+  /* 吸底操作栏（如「发送请求」）—— 滚动内容上方需近乎不透明 */
+  .action-bar {
+    @apply rounded-xl border backdrop-blur-md;
+    background-color: var(--ui-panel-elevated);
+    border-color: var(--ui-border);
+    box-shadow: 0 -10px 24px -18px rgba(15, 23, 42, 0.55);
+  }
+
+  .glass-surface {
+    @apply border-b backdrop-blur-xl;
+    background-color: var(--ui-glass);
+    border-color: var(--ui-border);
+  }
+
+  .field-input {
+    @apply rounded-md border outline-none;
+    transition: border-color var(--duration-base) var(--ease-out), box-shadow var(--duration-base) var(--ease-out);
+    background-color: var(--ui-input);
+    border-color: var(--ui-border);
+    color: var(--ui-text);
+  }
+
+  .field-input::placeholder {
+    color: var(--ui-text-soft);
+  }
+
+  .field-input:focus {
+    border-color: color-mix(in srgb, var(--ui-accent) 60%, var(--ui-border));
+    box-shadow: 0 0 0 2px var(--ui-accent-soft);
+  }
+
+  .toolbar-input {
+    @apply h-9 rounded-lg border px-3 text-sm outline-none transition;
+    background-color: var(--ui-input);
+    border-color: var(--ui-border);
+    color: var(--ui-text);
+  }
+
+  .toolbar-input::placeholder {
+    color: var(--ui-text-soft);
+  }
+
+  .toolbar-input:focus {
+    border-color: color-mix(in srgb, var(--ui-accent) 60%, var(--ui-border));
+    box-shadow: 0 0 0 2px var(--ui-accent-soft);
+  }
+
+  .toolbar-button {
+    @apply inline-flex h-9 cursor-pointer items-center justify-center gap-2 rounded-lg border px-3 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-45;
+    transition: all var(--duration-base) var(--ease-out);
+    background-color: var(--ui-btn);
+    border-color: var(--ui-border);
+    color: var(--ui-text-muted);
+  }
+
+  .toolbar-button:hover {
+    border-color: var(--ui-border-strong);
+    background-color: var(--ui-btn-hover);
+    color: var(--ui-text);
+  }
+
+  .toolbar-button-primary {
+    background-color: var(--ui-accent);
+    border-color: var(--ui-accent);
+    color: #ffffff;
+  }
+
+  .toolbar-button-primary:hover {
+    background-color: var(--ui-accent-hover);
+    border-color: var(--ui-accent-hover);
+    color: #ffffff;
+  }
+
+  /* URL 输入框：更突出的边框色，与搜索框区分 */
+  .toolbar-input-url {
+    border-color: var(--ui-border-strong);
+  }
+
+  .toolbar-input-url:focus {
+    border-color: var(--ui-accent);
+    box-shadow: 0 0 0 2px var(--ui-accent-soft);
+  }
+
+  /* 搜索输入框：留出图标空间 */
+  .toolbar-input-search {
+    padding-left: 2.25rem;
+  }
+
+  .segmented-control {
+    @apply inline-flex overflow-hidden rounded-lg border p-0.5;
+    background-color: var(--ui-btn);
+    border-color: var(--ui-border);
+  }
+
+  .segmented-button {
+    @apply cursor-pointer rounded-md px-3 py-1 text-xs font-medium;
+    transition: all var(--duration-base) var(--ease-out);
+    color: var(--ui-text-muted);
+  }
+
+  .segmented-button:hover {
+    background-color: var(--ui-btn-hover);
+    color: var(--ui-text);
+  }
+
+  .segmented-button-active {
+    background-color: var(--ui-panel-elevated);
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.12);
+    color: var(--ui-accent);
+  }
+
+  .segmented-button-active:hover {
+    background-color: var(--ui-panel-elevated);
+    color: var(--ui-accent);
+  }
+
+  .detail-tab {
+    @apply inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-transparent px-3 py-1.5 text-sm font-medium;
+    transition: all var(--duration-base) var(--ease-out);
+    color: var(--ui-text-muted);
+  }
+
+  .detail-tab:hover {
+    background-color: var(--ui-btn);
+    color: var(--ui-text);
+  }
+
+  .detail-tab-active {
+    border-color: color-mix(in srgb, var(--ui-accent) 45%, var(--ui-border));
+    background-color: var(--ui-accent-soft);
+    color: var(--ui-accent);
+  }
+
+  .detail-tab-active:hover {
+    background-color: var(--ui-accent-soft);
+    color: var(--ui-accent);
+  }
+
+  .sidebar-item {
+    @apply flex w-full cursor-pointer items-center gap-2 rounded-lg border border-transparent px-3 py-2 text-left text-sm;
+    transition: all var(--duration-base) var(--ease-out);
+    color: var(--ui-text-muted);
+  }
+
+  .sidebar-item:hover {
+    border-color: var(--ui-border);
+    background-color: var(--ui-btn);
+    color: var(--ui-text);
+  }
+
+  .sidebar-item-active {
+    border-color: color-mix(in srgb, var(--ui-accent) 45%, var(--ui-border));
+    background-color: var(--ui-accent-soft);
+    color: var(--ui-text);
+  }
+
+  .table-row {
+    @apply cursor-pointer border-b;
+    transition: background-color var(--duration-fast) var(--ease-out);
+    border-color: var(--ui-border);
+  }
+
+  .table-row:hover {
+    background-color: var(--ui-btn);
+  }
+
+  .badge-soft {
+    @apply inline-flex cursor-pointer items-center gap-1 rounded-md border px-2 py-1 text-[11px] font-medium;
+    transition: all var(--duration-base) var(--ease-out);
+    background-color: var(--ui-btn);
+    border-color: var(--ui-border);
+  }
+}
+
+html.light ::selection {
+  background: rgba(14, 165, 233, 0.18);
+  color: #0f172a;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #334155;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #475569;
+}
+
+html.light ::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+}
+
+html.light ::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+html.light .bg-ui-canvas {
+  background-color: transparent;
+}
+
+html.light .text-slate-100 {
+  color: #0f172a;
+}
+
+html.light .text-slate-200 {
+  color: #1e293b;
+}
+
+html.light .text-slate-300 {
+  color: #334155;
+}
+
+html.light .text-slate-400 {
+  color: #475569;
+}
+
+html.light .text-slate-500 {
+  color: #64748b;
+}
+
+html.light .text-slate-600 {
+  color: #94a3b8;
+}
+
+html.light .bg-white\/5 {
+  background-color: rgba(15, 23, 42, 0.04);
+}
+
+html.light .bg-white\/10 {
+  background-color: rgba(15, 23, 42, 0.08);
+}
+
+html.light .bg-white\/\[0\.02\] {
+  background-color: rgba(15, 23, 42, 0.02);
+}
+
+html.light .bg-white\/\[0\.03\] {
+  background-color: rgba(15, 23, 42, 0.03);
+}
+
+html.light .bg-white\/\[0\.04\] {
+  background-color: rgba(15, 23, 42, 0.05);
+}
+
+html.light .bg-white\/\[0\.06\] {
+  background-color: rgba(15, 23, 42, 0.06);
+}
+
+html.light .border-white\/5 {
+  border-color: rgba(148, 163, 184, 0.16);
+}
+
+html.light .border-white\/10 {
+  border-color: rgba(148, 163, 184, 0.24);
+}
+
+html.light .bg-slate-950\/95,
+html.light .bg-slate-950\/92,
+html.light .bg-slate-950\/80,
+html.light .bg-slate-950\/70,
+html.light .bg-slate-950\/60,
+html.light .bg-slate-900\/75,
+html.light .bg-slate-900,
+html.light .bg-slate-800 {
+  background-color: rgba(255, 255, 255, 0.9);
+}
+
+html.light .hover\:bg-white\/5:hover {
+  background-color: rgba(15, 23, 42, 0.05);
+}
+
+html.light .hover\:text-slate-200:hover,
+html.light .hover\:text-slate-100:hover,
+html.light .hover\:text-white:hover {
+  color: #0f172a;
+}
+
+html.light .hover\:border-white\/15:hover {
+  border-color: rgba(148, 163, 184, 0.36);
+}
+
+html.light .placeholder\:text-slate-500::placeholder {
+  color: #94a3b8;
+}
+
+/* SchemaTable 使用的 dark-* 调色板（浅色模式补齐对比度） */
+html.light .text-dark-200 { color: #1e293b; }
+html.light .text-dark-300 { color: #334155; }
+html.light .text-dark-400 { color: #475569; }
+html.light .text-dark-500 { color: #64748b; }
+html.light .text-dark-600 { color: #94a3b8; }
+html.light .border-dark-700 { border-color: rgba(148, 163, 184, 0.32); }
+html.light .border-dark-700\/30 { border-color: rgba(148, 163, 184, 0.18); }
+html.light .border-dark-800\/50 { border-color: rgba(148, 163, 184, 0.18); }
+html.light .hover\:bg-dark-800\/30:hover { background-color: rgba(15, 23, 42, 0.04); }
+html.light .hover\:text-dark-300:hover { color: #334155; }
+html.light .bg-dark-850\/50 { background-color: rgba(15, 23, 42, 0.03); }
+.bg-dark-850\/50 { background-color: rgba(148, 163, 184, 0.06); }
+
+/* 安全网：任何遗漏的深色代码面板在浅色模式回退为浅色凹陷面 */
+html.light .bg-slate-950\/98,
+html.light .bg-slate-950\/88,
+html.light .bg-slate-950\/76,
+html.light .bg-slate-950\/75,
+html.light .bg-slate-950\/72,
+html.light .bg-slate-950\/55 {
+  background-color: var(--ui-sunken);
+}
+
+/* JSON 文本区 */
+.json-editor {
+  font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
+  font-size: 12px;
+  line-height: 1.6;
+  tab-size: 2;
+}
+
+/* ========== Source highlight system ("Signal Trace") ========== */
+
+/* 菱形标记 —— 替代圆点，灵感来自精密仪器刻度 */
+.source-diamond {
+  clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
+}
+
+/* 左侧色带 —— API 条目左侧的源色强调线 */
+.source-bar {
+  border-left-width: 2px;
+  transition: border-color var(--duration-base) var(--ease-out);
+}
+
+/* 菱形辉光 —— hover 时标记外发光 */
+.source-marker-glow {
+  transition: box-shadow var(--duration-base) var(--ease-out);
+}
+.group:hover .source-marker-glow {
+  box-shadow: 0 0 8px currentColor;
+}
+
+/* 来源徽章悬停抬升 */
+.source-badge {
+  transition: transform var(--duration-fast) var(--ease-out), box-shadow var(--duration-base) var(--ease-out);
+}
+.source-badge:hover {
+  transform: translateY(-1px);
+}
+
+/* ========== Layout Transitions ========== */
+
+/* 三栏折叠/展开动画 — 通过 CSS Grid 列宽过渡 */
+.layout-grid {
+  transition: grid-template-columns var(--duration-layout) var(--ease-out);
+}
+
+/* 栏折叠按钮 hover 旋转提示 */
+.collapse-toggle svg {
+  transition: transform var(--duration-base) var(--ease-out);
+}
+.collapse-toggle:hover svg {
+  transform: scale(1.15);
+}
+
+/* 面板内容淡入 — 折叠→展开时内容延迟出现 */
+.panel-fade-enter-active {
+  transition: opacity var(--duration-slow) var(--ease-out) var(--duration-fast);
+}
+.panel-fade-leave-active {
+  transition: opacity var(--duration-fast) var(--ease-in-out);
+}
+.panel-fade-enter-from,
+.panel-fade-leave-to {
+  opacity: 0;
+}

@@ -1,0 +1,79 @@
+<script setup lang="ts">
+import { useI18n } from '@/i18n'
+
+defineProps<{
+  modelValue: Record<string, string>
+}>()
+
+const emit = defineEmits<{
+  'update:modelValue': [value: Record<string, string>]
+}>()
+
+const { t } = useI18n()
+</script>
+
+<template>
+  <div class="space-y-2">
+    <div class="flex items-center justify-end">
+      <button
+        class="rounded-md border border-white/10 px-2 py-1 text-[11px] text-slate-400 transition hover:border-white/15 hover:bg-white/[0.03] hover:text-slate-200"
+        @click="() => {
+          const copy = { ...modelValue }
+          copy[''] = ''
+          emit('update:modelValue', copy)
+        }"
+      >
+        {{ t('requestEditor.addHeader') }}
+      </button>
+    </div>
+
+    <div class="space-y-2">
+      <div
+        v-for="(val, key) in modelValue"
+        :key="key"
+        class="group grid grid-cols-[180px_minmax(0,1fr)_auto] gap-2"
+      >
+        <input
+          :value="key"
+          type="text"
+          :placeholder="t('requestEditor.headerName')"
+          class="field-input px-3 py-2 text-[11px] font-mono"
+          @input="(e: Event) => {
+            const newKey = (e.target as HTMLInputElement).value
+            const copy: Record<string, string> = {}
+            for (const [k, v] of Object.entries(modelValue)) {
+              if (k === key) {
+                if (newKey) copy[newKey] = v
+              } else {
+                copy[k] = v
+              }
+            }
+            emit('update:modelValue', copy)
+          }"
+        />
+        <input
+          :value="val"
+          type="text"
+          :placeholder="t('requestEditor.valuePlaceholder')"
+          class="field-input px-3 py-2 text-[11px] font-mono"
+          @input="(e: Event) => {
+            const copy = { ...modelValue }
+            copy[key] = (e.target as HTMLInputElement).value
+            emit('update:modelValue', copy)
+          }"
+        />
+        <button
+          class="rounded-md border border-transparent px-2 py-2 text-xs text-slate-600 opacity-0 transition group-hover:opacity-100 hover:border-red-400/20 hover:bg-red-500/10 hover:text-red-300"
+          :title="t('common.remove')"
+          @click="() => {
+            const copy = { ...modelValue }
+            delete copy[key]
+            emit('update:modelValue', copy)
+          }"
+        >
+          {{ t('common.remove') }}
+        </button>
+      </div>
+    </div>
+  </div>
+</template>
