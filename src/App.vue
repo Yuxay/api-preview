@@ -205,7 +205,7 @@ function expandApiList() {
               <AppIcon name="file-text" :size="32" class="text-sky-400" />
             </div>
             <div class="space-y-2">
-              <h1 class="text-2xl font-semibold text-slate-100">OpenAPI Light Desktop</h1>
+              <h1 class="text-2xl font-semibold text-slate-100">ApiPreview</h1>
               <p class="text-sm leading-6 text-slate-400">
                 {{ t('app.intro') }}
               </p>

@@ -1,4 +1,4 @@
-# OpenAPI Light Desktop — 后续执行文档（Next Steps）
+# ApiPreview — 后续执行文档（Next Steps）
 
 > 基于 2026-06-22 功能审计结论制定。
 > 当前完成度：**Phase 1–4 基本完整；Phase 5 约 40%（引擎在、链路断）**。

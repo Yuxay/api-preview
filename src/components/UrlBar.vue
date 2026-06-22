@@ -178,7 +178,7 @@ const themeOptions: { mode: ThemeMode; key: string }[] = [
       <div class="flex flex-wrap items-center gap-2">
         <div class="hidden min-w-[164px] items-center gap-2 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-xs text-slate-400 xl:flex">
           <span class="h-2 w-2 rounded-full bg-sky-500/80" />
-          <span class="font-semibold uppercase tracking-[0.14em] text-slate-300">OpenAPI Light</span>
+          <span class="font-semibold uppercase tracking-[0.14em] text-slate-300">ApiPreview</span>
         </div>
 
         <div class="relative min-w-0 flex-1">

@@ -1,7 +1,7 @@
 {
-  "name": "openapi-light-desktop",
+  "name": "api-preview",
   "version": "1.0.0",
-  "description": "轻量级 Swagger/OpenAPI 桌面阅读器 + 轻调试工具",
+  "description": "ApiPreview — 轻量级 Swagger/OpenAPI 桌面阅读器 + 轻调试工具",
   "type": "module",
   "main": "dist-electron/main.js",
   "scripts": {
@@ -31,8 +31,8 @@
     "vue-tsc": "^2.2.9"
   },
   "build": {
-    "appId": "com.yuxay.openapi-light-desktop",
-    "productName": "OpenAPI Light Desktop",
+    "appId": "com.yuxay.api-preview",
+    "productName": "ApiPreview",
     "directories": {
       "output": "release"
     },

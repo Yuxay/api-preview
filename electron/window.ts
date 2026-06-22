@@ -16,7 +16,7 @@ export function createMainWindow(): BrowserWindow {
     height: 900,
     minWidth: 1000,
     minHeight: 700,
-    title: 'OpenAPI Light Desktop',
+    title: 'ApiPreview',
     backgroundColor: '#020617',
     webPreferences: {
       preload: join(__dirname, 'preload.js'),

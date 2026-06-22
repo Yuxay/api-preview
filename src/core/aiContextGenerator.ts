@@ -123,7 +123,7 @@ function generateMarkdown(entries: ApiExportEntry[], options: GenerateOptions): 
   out.push(`# ${title}`)
   out.push('')
   out.push(
-    '> 本文档由 OpenAPI Light Desktop 自动生成，包含所选接口的 URL、请求参数、请求体与响应体定义（含 TypeScript 类型与 JSON 示例），可直接提供给 AI Agent 生成对应的 API 调用文件与前端页面。'
+    '> 本文档由 ApiPreview 自动生成，包含所选接口的 URL、请求参数、请求体与响应体定义（含 TypeScript 类型与 JSON 示例），可直接提供给 AI Agent 生成对应的 API 调用文件与前端页面。'
   )
   out.push('')
   out.push(`**接口数量**: ${entries.length}`)
@@ -243,7 +243,7 @@ function generateJson(entries: ApiExportEntry[], options: GenerateOptions): stri
   return JSON.stringify(
     {
       title: options.title || 'API 接口规范导出',
-      generatedBy: 'OpenAPI Light Desktop',
+      generatedBy: 'ApiPreview',
       count: entries.length,
       apis: entries,
     },

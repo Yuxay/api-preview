@@ -1,4 +1,4 @@
-# OpenAPI Light Desktop
+# ApiPreview
 
 轻量级 **Swagger / OpenAPI 桌面阅读器 + 轻调试工具** —— 本地运行、零 CORS、开箱即用。
 
@@ -13,7 +13,7 @@
 
 ---
 
-## ✨ 为什么选择 OpenAPI Light Desktop？
+## ✨ 为什么选择 ApiPreview？
 
 | 痛点 | 解决方案 |
 |------|----------|

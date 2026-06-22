@@ -1,4 +1,4 @@
-# OpenAPI Light Desktop — 执行进度
+# ApiPreview — 执行进度
 
 ## 总体进度
 
@@ -108,7 +108,7 @@ src/components/
 ## 项目结构
 
 ```
-openapi-light-desktop/
+api-preview/
 ├── package.json
 ├── tsconfig.json / tsconfig.node.json
 ├── vite.config.ts
