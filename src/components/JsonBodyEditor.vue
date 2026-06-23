@@ -5,6 +5,8 @@ import { useI18n } from '@/i18n';
 
 const props = defineProps<{
   modelValue: string;
+  validateJson?: boolean;
+  label?: string;
 }>();
 
 const emit = defineEmits<{
@@ -12,6 +14,9 @@ const emit = defineEmits<{
 }>();
 
 const validation = computed(() => {
+  if (props.validateJson === false) {
+    return { ok: true, data: props.modelValue, error: undefined as string | undefined };
+  }
   if (!props.modelValue.trim())
     return { ok: true, data: null, error: undefined as string | undefined };
   const result = tryParseJson(props.modelValue);
@@ -29,10 +34,10 @@ const { t } = useI18n();
   <div>
     <div class="mb-2 flex items-center justify-between">
       <span class="text-xs" style="color: var(--ui-text-muted)">{{
-        t('requestEditor.jsonBody')
+        label || t('requestEditor.jsonBody')
       }}</span>
       <span
-        v-if="modelValue.trim()"
+        v-if="validateJson !== false && modelValue.trim()"
         class="text-[11px] font-mono"
         :style="{
           color: validation.ok ? 'var(--ui-success)' : 'var(--ui-danger)',

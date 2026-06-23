@@ -1,17 +1,17 @@
-import { computed, ref, watch } from 'vue'
-import { getUiState, saveUiState } from '@/utils/storage'
+import { computed, ref, watch } from 'vue';
+import { getUiState, saveUiState } from '@/utils/storage';
 
-export type Locale = 'zh-CN' | 'en-US'
+export type Locale = 'zh-CN' | 'en-US';
 
 interface MessageSchema {
-  [key: string]: string | MessageSchema
+  [key: string]: string | MessageSchema;
 }
 
-type MessageValue = string | MessageSchema
-type MessageParams = Record<string, string | number>
+type MessageValue = string | MessageSchema;
+type MessageParams = Record<string, string | number>;
 
-const LOCALE_STORAGE_KEY = 'locale'
-const DEFAULT_LOCALE: Locale = 'zh-CN'
+const LOCALE_STORAGE_KEY = 'locale';
+const DEFAULT_LOCALE: Locale = 'zh-CN';
 
 const messages: Record<Locale, MessageSchema> = {
   'zh-CN': {
@@ -108,7 +108,8 @@ const messages: Record<Locale, MessageSchema> = {
       intro:
         '从顶部输入 Swagger / OpenAPI URL，加载后即可浏览 API、调试请求、管理多个来源并查看差异变化。',
       loadingDocs: '正在加载 API 文档...',
-      selectApiHint: '从中间列表选择一个 API，右侧会显示文档、请求参数和调试响应。',
+      selectApiHint:
+        '从中间列表选择一个 API，右侧会显示文档、请求参数和调试响应。',
     },
     urlBar: {
       addSource: '添加来源',
@@ -116,7 +117,8 @@ const messages: Record<Locale, MessageSchema> = {
       allSources: '全部',
       bearerToken: 'Bearer Token',
       loadExample: '加载示例',
-      pasteUrl: '粘贴 Swagger URL，例如 http://127.0.0.1:8080/v3/api-docs/business',
+      pasteUrl:
+        '粘贴 Swagger URL，例如 http://127.0.0.1:8080/v3/api-docs/business',
       removeSource: '删除来源',
       searchPlaceholder: '搜索 API 路径、摘要、标签...',
       sourceFilter: '来源筛选',
@@ -146,7 +148,8 @@ const messages: Record<Locale, MessageSchema> = {
       entryTitle: '生成 AI 代码上下文',
       quickExport: '导出此接口',
       title: '生成 AI 代码上下文',
-      description: '勾选一个或多个 API，或直接勾选标签全选其下接口，生成包含 URL、参数、请求体与响应体的规范，可直接交给 AI Agent 生成接口文件与页面。',
+      description:
+        '勾选一个或多个 API，或直接勾选标签全选其下接口，生成包含 URL、参数、请求体与响应体的规范，可直接交给 AI Agent 生成接口文件与页面。',
       filterPlaceholder: '筛选 method / path / summary / tag...',
       selectedCount: '已选 {count} 个接口',
       selectAll: '全选',
@@ -166,6 +169,7 @@ const messages: Record<Locale, MessageSchema> = {
       parametersHint: '按位置查看接口参数。',
       noParameters: '该接口没有参数。',
       requestBodyTitle: '请求体定义',
+      requestMediaType: '请求体类型',
       paramLocation: '位置',
       documentedResponses: '文档响应',
       documentedResponsesHint: '按规范查看状态码与返回 Schema。',
@@ -180,12 +184,16 @@ const messages: Record<Locale, MessageSchema> = {
       responseSubtitle: '运行时响应 + Schema 参考',
       runtimePayload: '运行时载荷',
       runtimePayloadHint: '树状浏览 JSON，非 JSON 以代码块显示。',
+      binaryPayload: '二进制响应',
+      binaryPayloadHint:
+        '当前响应以 Base64 保存，避免二进制内容被错误按文本解析。',
       schemaReference: 'Schema 参考',
       sendRequest: '发送请求',
       sending: '发送中...',
       serverFallback: '使用规范中的服务器地址',
       tryRequest: '调试请求',
-      tryRequestSummary: '路径 {pathCount} · Query {queryCount} · 请求头 {headerCount}',
+      tryRequestSummary:
+        '路径 {pathCount} · Query {queryCount} · 请求头 {headerCount}',
       documentedResponseCount: '{count} 处变更',
     },
     diff: {
@@ -209,6 +217,7 @@ const messages: Record<Locale, MessageSchema> = {
       headerName: 'Header 名称',
       invalidJson: 'JSON 格式错误',
       jsonBody: 'JSON 请求体',
+      rawBody: '原始请求体',
       validJson: 'JSON 有效',
       valuePlaceholder: '值',
     },
@@ -217,6 +226,7 @@ const messages: Record<Locale, MessageSchema> = {
       copyDescription: '复制说明',
       copyField: '复制字段名',
       field: '字段',
+      mapValueType: '映射值类型：',
     },
     errors: {
       duplicateSource: '该文档地址已存在：{url}',
@@ -326,9 +336,11 @@ const messages: Record<Locale, MessageSchema> = {
       check: 'Check Updates',
       checking: 'Checking',
       checkingForUpdates: 'Checking for updates...',
-      updateAvailable: 'Version {version} is available and is downloading in the background.',
+      updateAvailable:
+        'Version {version} is available and is downloading in the background.',
       downloading: 'Downloading update... {progress}%',
-      downloaded: 'Version {version} is ready. The app will close and install the update automatically.',
+      downloaded:
+        'Version {version} is ready. The app will close and install the update automatically.',
       upToDate: 'You are on the latest version ({version}).',
       checkFailed: 'Update check failed: {message}',
     },
@@ -336,7 +348,8 @@ const messages: Record<Locale, MessageSchema> = {
       intro:
         'Paste a Swagger / OpenAPI URL at the top to browse APIs, debug requests, manage multiple sources, and inspect diffs.',
       loadingDocs: 'Loading API documents...',
-      selectApiHint: 'Select an API from the middle list to view docs, request params, and runtime responses.',
+      selectApiHint:
+        'Select an API from the middle list to view docs, request params, and runtime responses.',
     },
     urlBar: {
       addSource: 'Add Source',
@@ -344,7 +357,8 @@ const messages: Record<Locale, MessageSchema> = {
       allSources: 'All',
       bearerToken: 'Bearer Token',
       loadExample: 'Load Example',
-      pasteUrl: 'Paste a Swagger URL, e.g. http://127.0.0.1:8080/v3/api-docs/business',
+      pasteUrl:
+        'Paste a Swagger URL, e.g. http://127.0.0.1:8080/v3/api-docs/business',
       removeSource: 'Remove source',
       searchPlaceholder: 'Search API path, summary, tag...',
       sourceFilter: 'Source Filter',
@@ -365,7 +379,8 @@ const messages: Record<Locale, MessageSchema> = {
     explorer: {
       browseHint: 'Browse APIs by method / path / summary',
       empty: 'No APIs match the current filters.',
-      noMatch: 'No API matches the current keyword. Try searching by path, summary, or tag.',
+      noMatch:
+        'No API matches the current keyword. Try searching by path, summary, or tag.',
       searchLabel: 'Search: {query}',
       title: 'API Explorer',
     },
@@ -374,7 +389,8 @@ const messages: Record<Locale, MessageSchema> = {
       entryTitle: 'Generate AI code context',
       quickExport: 'Export this API',
       title: 'Generate AI Code Context',
-      description: 'Select one or more APIs, or pick whole tags to include all their endpoints. Generates a spec with URL, parameters, request and response bodies that you can hand to an AI agent to scaffold API files and pages.',
+      description:
+        'Select one or more APIs, or pick whole tags to include all their endpoints. Generates a spec with URL, parameters, request and response bodies that you can hand to an AI agent to scaffold API files and pages.',
       filterPlaceholder: 'Filter by method / path / summary / tag...',
       selectedCount: '{count} selected',
       selectAll: 'Select All',
@@ -394,10 +410,13 @@ const messages: Record<Locale, MessageSchema> = {
       parametersHint: 'Inspect parameters grouped by location.',
       noParameters: 'This API has no parameters.',
       requestBodyTitle: 'Request Body',
+      requestMediaType: 'Body Media Type',
       paramLocation: 'In',
       documentedResponses: 'Documented Responses',
-      documentedResponsesHint: 'Inspect documented status codes and response schemas.',
-      emptyResponse: 'Send a request to inspect status, headers, and JSON structure here.',
+      documentedResponsesHint:
+        'Inspect documented status codes and response schemas.',
+      emptyResponse:
+        'Send a request to inspect status, headers, and JSON structure here.',
       emptyResponseBody: 'Response body will appear here.',
       optionalRequestBody: 'Optional request body',
       pathParams: 'Path Params',
@@ -407,13 +426,18 @@ const messages: Record<Locale, MessageSchema> = {
       requiredRequestBody: 'Required request body',
       responseSubtitle: 'Runtime response + schema reference',
       runtimePayload: 'Runtime Payload',
-      runtimePayloadHint: 'Browse JSON as a tree. Non-JSON payloads are shown as code.',
+      runtimePayloadHint:
+        'Browse JSON as a tree. Non-JSON payloads are shown as code.',
+      binaryPayload: 'Binary Payload',
+      binaryPayloadHint:
+        'This response is stored as Base64 so binary content is not corrupted by text decoding.',
       schemaReference: 'Schema Reference',
       sendRequest: 'Send Request',
       sending: 'Sending...',
       serverFallback: 'Use server from spec',
       tryRequest: 'Try Request',
-      tryRequestSummary: 'Path {pathCount} · Query {queryCount} · Headers {headerCount}',
+      tryRequestSummary:
+        'Path {pathCount} · Query {queryCount} · Headers {headerCount}',
       documentedResponseCount: '{count} change(s)',
     },
     diff: {
@@ -422,8 +446,10 @@ const messages: Record<Locale, MessageSchema> = {
       emptyCategory: 'No diff items exist in this category.',
       impactedApis: 'Impacted APIs',
       modified: 'Modified',
-      noApiFieldChanges: 'This API has no expandable field-level changes in this category.',
-      noSchemaFieldChanges: 'This schema has no field-level changes in this category.',
+      noApiFieldChanges:
+        'This API has no expandable field-level changes in this category.',
+      noSchemaFieldChanges:
+        'This schema has no field-level changes in this category.',
       removed: 'Removed',
       selectHint: 'Select a diff item on the left to view details.',
       unchanged: 'Unchanged',
@@ -437,6 +463,7 @@ const messages: Record<Locale, MessageSchema> = {
       headerName: 'Header name',
       invalidJson: 'Invalid JSON',
       jsonBody: 'JSON Body',
+      rawBody: 'Raw Body',
       validJson: 'Valid JSON',
       valuePlaceholder: 'Value',
     },
@@ -445,10 +472,12 @@ const messages: Record<Locale, MessageSchema> = {
       copyDescription: 'Copy description',
       copyField: 'Copy field name',
       field: 'Field',
+      mapValueType: 'Map value type:',
     },
     errors: {
       duplicateSource: 'This document URL already exists: {url}',
-      exampleUnavailable: 'Example project is only available in Electron dev mode',
+      exampleUnavailable:
+        'Example project is only available in Electron dev mode',
       http: 'HTTP {status}: {statusText}',
       invalidJson: 'Invalid JSON: {message}',
       invalidSpec: 'The response is not a valid OpenAPI/Swagger spec',
@@ -470,58 +499,62 @@ const messages: Record<Locale, MessageSchema> = {
       tildeCount: '~{count} modified',
     },
   },
-}
+};
 
 function normalizeLocale(value: unknown): Locale {
-  return value === 'en-US' ? 'en-US' : DEFAULT_LOCALE
+  return value === 'en-US' ? 'en-US' : DEFAULT_LOCALE;
 }
 
 function resolveMessage(locale: Locale, key: string): string | undefined {
-  const parts = key.split('.')
-  let current: MessageValue | undefined = messages[locale]
+  const parts = key.split('.');
+  let current: MessageValue | undefined = messages[locale];
 
   for (const part of parts) {
-    if (!current || typeof current === 'string') return undefined
-    current = current[part]
+    if (!current || typeof current === 'string') return undefined;
+    current = current[part];
   }
 
-  return typeof current === 'string' ? current : undefined
+  return typeof current === 'string' ? current : undefined;
 }
 
 function formatMessage(template: string, params?: MessageParams): string {
-  if (!params) return template
-  return template.replace(/\{(\w+)\}/g, (_, key) => String(params[key] ?? `{${key}}`))
+  if (!params) return template;
+  return template.replace(/\{(\w+)\}/g, (_, key) =>
+    String(params[key] ?? `{${key}}`),
+  );
 }
 
-const localeState = ref<Locale>(normalizeLocale(getUiState(LOCALE_STORAGE_KEY, DEFAULT_LOCALE)))
+const localeState = ref<Locale>(
+  normalizeLocale(getUiState(LOCALE_STORAGE_KEY, DEFAULT_LOCALE)),
+);
 
 watch(
   localeState,
   (value) => {
-    saveUiState(LOCALE_STORAGE_KEY, value)
+    saveUiState(LOCALE_STORAGE_KEY, value);
     if (typeof document !== 'undefined') {
-      document.documentElement.lang = value
+      document.documentElement.lang = value;
     }
   },
-  { immediate: true }
-)
+  { immediate: true },
+);
 
 export function translate(key: string, params?: MessageParams): string {
-  const current = resolveMessage(localeState.value, key)
-  if (current) return formatMessage(current, params)
+  const current = resolveMessage(localeState.value, key);
+  if (current) return formatMessage(current, params);
 
-  const fallback = resolveMessage(DEFAULT_LOCALE, key)
-  if (fallback) return formatMessage(fallback, params)
+  const fallback = resolveMessage(DEFAULT_LOCALE, key);
+  if (fallback) return formatMessage(fallback, params);
 
-  return key
+  return key;
 }
 
 export function setLocale(locale: Locale): void {
-  localeState.value = locale
+  localeState.value = locale;
 }
 
 export function getLocale(): Locale {
-  return localeState.value
+  return localeState.value;
 }
 
 export function useI18n() {
@@ -529,5 +562,5 @@ export function useI18n() {
     locale: computed(() => localeState.value),
     setLocale,
     t: translate,
-  }
+  };
 }

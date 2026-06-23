@@ -11,9 +11,12 @@ import {
 import { sendRequest, type ProxyResponse } from '@/services/httpClient';
 import { getUiState, saveUiState } from '@/utils/storage';
 import {
+  formatBytes,
   formatResponseTime,
   getMethodColor,
+  isJsonMediaType,
   joinUrl,
+  normalizeMediaType,
   prettyJson,
   tryParseJson,
 } from '@/utils/format';
@@ -61,6 +64,7 @@ const formFields = ref<FormField[]>([]);
 const sending = ref(false);
 const response = ref<ProxyResponse | null>(null);
 const buildError = ref<RequestBuildError | null>(null);
+const requestMediaType = ref('');
 const { t } = useI18n();
 
 watch(activeView, (value) => saveUiState('detail-active-view', value));
@@ -76,12 +80,25 @@ for (const [key, state] of [
   watch(state, (value) => saveUiState(key, value));
 }
 
+const requestMediaTypes = computed(() =>
+  Object.keys(props.api.requestBody?.content || {}),
+);
 const bodySchema = computed(
-  () => props.api.requestBody?.content?.['application/json']?.schema,
+  () => props.api.requestBody?.content?.[requestMediaType.value]?.schema,
 );
 const requiredFields = computed(() => bodySchema.value?.required || []);
 const hasBodySchema = computed(
-  () => !!(bodySchema.value?.properties || bodySchema.value?.type),
+  () =>
+    !!(
+      bodySchema.value?.properties ||
+      bodySchema.value?.type ||
+      bodySchema.value?.oneOf ||
+      bodySchema.value?.anyOf ||
+      bodySchema.value?.allOf
+    ),
+);
+const canUseFormBody = computed(
+  () => hasBodySchema.value && isJsonMediaType(requestMediaType.value),
 );
 const pathParamsList = computed(() =>
   props.api.parameters.filter((param) => param.in === 'path'),
@@ -96,17 +113,36 @@ const isBodyMethod = computed(() =>
   ['POST', 'PUT', 'PATCH'].includes(props.api.method.toUpperCase()),
 );
 const parsedResponse = computed(() =>
-  response.value ? tryParseJson(response.value.body) : null,
+  response.value?.bodyEncoding === 'base64' || !response.value
+    ? null
+    : tryParseJson(response.value.body),
 );
 const responseBodyDisplay = computed(() => {
   if (!response.value) return '';
+  if (response.value.bodyEncoding === 'base64') return response.value.body;
   if (parsedResponse.value?.ok) return prettyJson(parsedResponse.value.data);
   return response.value.body;
 });
 const responseTreeData = computed(() => {
-  if (!parsedResponse.value?.ok) return null;
+  if (
+    !parsedResponse.value?.ok ||
+    parsedResponse.value.data === null ||
+    typeof parsedResponse.value.data !== 'object'
+  ) {
+    return null;
+  }
   return parsedResponse.value.data;
 });
+const responsePayloadTitle = computed(() =>
+  response.value?.bodyEncoding === 'base64'
+    ? t('apiDetail.binaryPayload')
+    : t('apiDetail.runtimePayload'),
+);
+const responsePayloadHint = computed(() =>
+  response.value?.bodyEncoding === 'base64'
+    ? t('apiDetail.binaryPayloadHint')
+    : t('apiDetail.runtimePayloadHint'),
+);
 const serverBase = computed(() => props.servers?.[0]?.url || '');
 const activeServer = computed(
   () => serverBase.value || t('apiDetail.serverFallback'),
@@ -137,6 +173,10 @@ const tryRequestSummary = computed(() =>
 watch(
   () => props.api,
   (api) => {
+    requestMediaType.value = pickPreferredMediaType(
+      Object.keys(api.requestBody?.content || {}),
+    );
+
     const nextPathParams: Record<string, string> = {};
     for (const param of api.parameters.filter((item) => item.in === 'path')) {
       nextPathParams[param.name] = stringifyValue(resolveExample(param));
@@ -149,10 +189,14 @@ watch(
     }
     queryParams.value = nextQueryParams;
 
-    const nextHeaders: Record<string, string> = {
-      'Content-Type': 'application/json',
-      Accept: 'application/json',
-    };
+    const nextHeaders: Record<string, string> = {};
+    const acceptType = pickPreferredMediaType(collectResponseMediaTypes(api));
+    if (acceptType) {
+      nextHeaders.Accept = acceptType;
+    }
+    if (isBodyMethod.value && requestMediaType.value) {
+      nextHeaders['Content-Type'] = requestMediaType.value;
+    }
     if (props.token) {
       nextHeaders.Authorization = `Bearer ${props.token}`;
     }
@@ -161,18 +205,23 @@ watch(
     }
     requestHeaders.value = nextHeaders;
 
-    if (bodySchema.value) {
+    const nextBodySchema =
+      api.requestBody?.content?.[requestMediaType.value]?.schema;
+    if (nextBodySchema && isJsonMediaType(requestMediaType.value)) {
       formFields.value = schemaToFormFields(
-        bodySchema.value,
-        requiredFields.value,
+        nextBodySchema,
+        nextBodySchema.required || [],
       );
       requestBody.value = prettyJson(formFieldsToBody(formFields.value));
+      bodyMode.value = 'form';
     } else {
       formFields.value = [];
-      requestBody.value = '';
+      requestBody.value = stringifyRequestBodyExample(
+        api.requestBody?.content?.[requestMediaType.value],
+      );
+      bodyMode.value = 'json';
     }
 
-    bodyMode.value = 'form';
     bodySchemaView.value = 'table';
     respSchemaView.value = 'table';
     response.value = null;
@@ -191,6 +240,26 @@ watch(
     }
   },
 );
+
+watch(requestMediaType, (mediaType, prevMediaType) => {
+  if (!mediaType || mediaType === prevMediaType) return;
+
+  if (isBodyMethod.value) {
+    requestHeaders.value['Content-Type'] = mediaType;
+  }
+
+  const mediaObj = props.api.requestBody?.content?.[mediaType];
+  const schema = mediaObj?.schema;
+  if (schema && isJsonMediaType(mediaType)) {
+    formFields.value = schemaToFormFields(schema, schema.required || []);
+    requestBody.value = prettyJson(formFieldsToBody(formFields.value));
+    bodyMode.value = 'form';
+  } else {
+    formFields.value = [];
+    requestBody.value = stringifyRequestBodyExample(mediaObj);
+    bodyMode.value = 'json';
+  }
+});
 
 function resolveExample(param: ApiParameter): unknown {
   return param.example ?? param.schema?.example ?? param.schema?.default ?? '';
@@ -231,6 +300,33 @@ function hasParamSchemaDetails(param: ApiParameter): boolean {
   );
 }
 
+function pickPreferredMediaType(mediaTypes: string[]): string {
+  if (mediaTypes.length === 0) return '';
+  return (
+    mediaTypes.find(
+      (type) => normalizeMediaType(type) === 'application/json',
+    ) || mediaTypes[0]
+  );
+}
+
+function collectResponseMediaTypes(api: ApiItem): string[] {
+  return [
+    ...new Set(
+      api.responses.flatMap((item) => Object.keys(item.content || {})),
+    ),
+  ];
+}
+
+function stringifyRequestBodyExample(mediaObj?: {
+  schema?: { example?: unknown; default?: unknown };
+  example?: unknown;
+}): string {
+  const example =
+    mediaObj?.example ?? mediaObj?.schema?.example ?? mediaObj?.schema?.default;
+  if (example === undefined || example === null) return '';
+  return typeof example === 'string' ? example : prettyJson(example);
+}
+
 function onModeChange(mode: 'form' | 'json') {
   if (
     mode === 'json' &&
@@ -240,34 +336,39 @@ function onModeChange(mode: 'form' | 'json') {
     requestBody.value = prettyJson(formFieldsToBody(formFields.value));
   } else if (mode === 'form' && bodyMode.value === 'json') {
     const parsed = tryParseJson(requestBody.value);
-    if (parsed.ok && typeof parsed.data === 'object' && parsed.data !== null) {
-      updateFormFieldsFromObject(
-        formFields.value,
-        parsed.data as Record<string, unknown>,
-      );
+    if (parsed.ok) {
+      updateFormFieldsFromValue(formFields.value, parsed.data);
     }
   }
   bodyMode.value = mode;
 }
 
-function updateFormFieldsFromObject(
-  fields: FormField[],
-  data: Record<string, unknown>,
-) {
+function updateFormFieldsFromValue(fields: FormField[], data: unknown) {
+  if (
+    fields.length === 1 &&
+    (fields[0].key === 'value' || fields[0].key === 'items')
+  ) {
+    fields[0].value = data;
+    return;
+  }
+
+  if (typeof data !== 'object' || data === null || Array.isArray(data)) {
+    return;
+  }
+
+  const record = data as Record<string, unknown>;
   for (const field of fields) {
-    const value = data[field.key];
+    const value = record[field.key];
     if (value === undefined) continue;
     if (
       field.type === 'object' &&
       field.children &&
       typeof value === 'object' &&
-      value !== null
+      value !== null &&
+      !Array.isArray(value)
     ) {
       field.value = value;
-      updateFormFieldsFromObject(
-        field.children,
-        value as Record<string, unknown>,
-      );
+      updateFormFieldsFromValue(field.children, value);
       continue;
     }
     field.value = value;
@@ -718,15 +819,41 @@ function responseMetaClass(code?: string) {
             >
               <template #actions>
                 <ModeSwitch
-                  v-if="hasBodySchema"
+                  v-if="canUseFormBody"
                   :model-value="bodyMode"
                   @update:model-value="onModeChange"
                 />
               </template>
 
               <div class="space-y-4">
+                <label
+                  v-if="requestMediaTypes.length > 1"
+                  class="block text-xs"
+                  style="color: var(--ui-text-muted)"
+                >
+                  <span class="mb-1 block">{{
+                    t('apiDetail.requestMediaType')
+                  }}</span>
+                  <select
+                    v-model="requestMediaType"
+                    class="field-input w-full px-2 py-1.5 text-xs font-mono"
+                  >
+                    <option
+                      v-for="mediaType in requestMediaTypes"
+                      :key="mediaType"
+                      :value="mediaType"
+                    >
+                      {{ mediaType }}
+                    </option>
+                  </select>
+                </label>
+
                 <div
-                  v-if="bodyMode === 'form' && formFields.length > 0"
+                  v-if="
+                    bodyMode === 'form' &&
+                    canUseFormBody &&
+                    formFields.length > 0
+                  "
                   class="surface-inset max-h-[20rem] overflow-auto p-2"
                 >
                   <SmartForm
@@ -741,6 +868,12 @@ function responseMetaClass(code?: string) {
                 <JsonBodyEditor
                   v-else
                   :model-value="requestBody"
+                  :label="
+                    isJsonMediaType(requestMediaType)
+                      ? t('requestEditor.jsonBody')
+                      : t('requestEditor.rawBody')
+                  "
+                  :validate-json="isJsonMediaType(requestMediaType)"
                   @update:model-value="(value: string) => (requestBody = value)"
                 />
               </div>
@@ -833,10 +966,22 @@ function responseMetaClass(code?: string) {
                   class="text-xs font-semibold uppercase tracking-[0.14em]"
                   style="color: var(--ui-text-soft)"
                 >
-                  {{ t('apiDetail.runtimePayload') }}
+                  {{ responsePayloadTitle }}
                 </p>
                 <p class="mt-1 text-xs" style="color: var(--ui-text-muted)">
-                  {{ t('apiDetail.runtimePayloadHint') }}
+                  {{ responsePayloadHint }}
+                </p>
+                <p
+                  v-if="
+                    response?.contentType || response?.bodySize !== undefined
+                  "
+                  class="mt-1 text-[11px] font-mono"
+                  style="color: var(--ui-text-soft)"
+                >
+                  {{ response?.contentType || 'application/octet-stream' }}
+                  <span v-if="response?.bodySize !== undefined">
+                    · {{ formatBytes(response.bodySize) }}
+                  </span>
                 </p>
               </div>
 

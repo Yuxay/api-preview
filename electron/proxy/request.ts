@@ -1,5 +1,6 @@
 import { ipcMain } from 'electron'
 import { validateRequestUrl } from '../ipc/swagger'
+import { isTextLikeMediaType } from '../../src/utils/format'
 
 const DEFAULT_TIMEOUT_MS = 30_000
 
@@ -43,12 +44,16 @@ export function registerProxyHandler(): void {
       })
 
       clearTimeout(timer)
-      const raw = await res.text()
-
       const headersObj: Record<string, string> = {}
       res.headers.forEach((value, key) => {
         headersObj[key] = value
       })
+      const contentType = res.headers.get('content-type') || undefined
+      const textLike = isTextLikeMediaType(contentType)
+      const arrayBuffer = await res.arrayBuffer()
+      const raw = textLike
+        ? new TextDecoder().decode(arrayBuffer)
+        : Buffer.from(arrayBuffer).toString('base64')
 
       return {
         success: res.ok || (res.status >= 200 && res.status < 400),
@@ -56,6 +61,9 @@ export function registerProxyHandler(): void {
         statusText: res.statusText || httpStatusText(res.status),
         headers: headersObj,
         body: raw,
+        bodyEncoding: textLike ? 'text' : 'base64',
+        contentType,
+        bodySize: arrayBuffer.byteLength,
         duration: Date.now() - start,
         error: res.ok ? undefined : `HTTP ${res.status}: ${raw.slice(0, 300)}`,
       }

@@ -110,6 +110,11 @@ export function formFieldsToBody(fields: FormField[]): unknown {
     return result.value
   }
 
+  // 如果根级 schema 是数组，直接返回数组本身而不是 { items: [...] }
+  if (allScalar && fields.length === 1 && 'items' in result) {
+    return result.items
+  }
+
   return result
 }
 

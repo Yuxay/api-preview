@@ -155,6 +155,19 @@ function resolveSchemaRef(
     }
     resolved = { ...resolved, properties: resolvedProps };
   }
+  if (
+    resolved.additionalProperties &&
+    typeof resolved.additionalProperties === 'object'
+  ) {
+    resolved = {
+      ...resolved,
+      additionalProperties: resolveSchemaRef(
+        resolved.additionalProperties,
+        spec,
+        new Set(visited),
+      ),
+    };
+  }
   if (resolved.items) {
     resolved = {
       ...resolved,

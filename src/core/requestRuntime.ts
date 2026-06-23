@@ -1,5 +1,6 @@
 import type { ApiItem } from './types'
 import { translate } from '@/i18n'
+import { isJsonMediaType } from '@/utils/format'
 
 // ========== 输出类型 ==========
 export interface RequestConfig {
@@ -47,7 +48,7 @@ export function buildRequest(api: ApiItem, opts: RequestBuildOptions): BuildResu
   const headers = buildHeaders(api, opts)
 
   // 3. 构建/校验 Body
-  const bodyResult = buildBody(api.method, opts.body)
+  const bodyResult = buildBody(api.method, opts.body, headers['Content-Type'])
   if (bodyResult !== null && !bodyResult.ok) {
     return { ok: false, error: bodyResult.error }
   }
@@ -167,6 +168,7 @@ function buildHeaders(api: ApiItem, opts: RequestBuildOptions): Record<string, s
 function buildBody(
   method: string,
   rawBody: string,
+  contentType?: string,
 ): { ok: boolean; body?: string; error?: RequestBuildError } | null {
   // 无 body 的方法跳过
   if (!['POST', 'PUT', 'PATCH'].includes(method.toUpperCase())) {
@@ -176,16 +178,18 @@ function buildBody(
   const trimmed = (rawBody || '').trim()
   if (!trimmed) return null // 空 body 不发送
 
-  // JSON 校验
-  try {
-    JSON.parse(trimmed)
-  } catch (e: any) {
-    return {
-      ok: false,
-      error: {
-        type: 'invalid_json_body',
-        message: translate('errors.invalidJson', { message: e.message }),
-      },
+  if (isJsonMediaType(contentType)) {
+    // JSON 校验
+    try {
+      JSON.parse(trimmed)
+    } catch (e: any) {
+      return {
+        ok: false,
+        error: {
+          type: 'invalid_json_body',
+          message: translate('errors.invalidJson', { message: e.message }),
+        },
+      }
     }
   }
 

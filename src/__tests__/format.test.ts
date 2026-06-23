@@ -1,5 +1,12 @@
 import { describe, it, expect } from 'vitest'
-import { prettyJson, tryParseJson, formatResponseTime, getMethodColor } from '@/utils/format'
+import {
+  prettyJson,
+  tryParseJson,
+  formatResponseTime,
+  getMethodColor,
+  isJsonMediaType,
+  isTextLikeMediaType,
+} from '@/utils/format'
 
 describe('prettyJson', () => {
   it('formats a valid object with 2-space indent', () => {
@@ -74,5 +81,20 @@ describe('getMethodColor', () => {
 
   it('defaults to GET color for unknown methods', () => {
     expect(getMethodColor('PURGE')).toContain('text-green')
+  })
+})
+
+describe('media type helpers', () => {
+  it('detects json media types with suffixes', () => {
+    expect(isJsonMediaType('application/json; charset=utf-8')).toBe(true)
+    expect(isJsonMediaType('application/problem+json')).toBe(true)
+    expect(isJsonMediaType('text/plain')).toBe(false)
+  })
+
+  it('distinguishes text-like and binary media types', () => {
+    expect(isTextLikeMediaType('text/plain')).toBe(true)
+    expect(isTextLikeMediaType('application/xml')).toBe(true)
+    expect(isTextLikeMediaType('application/octet-stream')).toBe(false)
+    expect(isTextLikeMediaType('image/png')).toBe(false)
   })
 })

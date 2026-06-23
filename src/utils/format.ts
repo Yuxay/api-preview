@@ -62,3 +62,34 @@ export function joinUrl(base: string, path: string): string {
   }
   return cleanBase + cleanPath
 }
+
+export function normalizeMediaType(value?: string): string {
+  return (value || '').split(';', 1)[0].trim().toLowerCase()
+}
+
+export function isJsonMediaType(value?: string): boolean {
+  const mediaType = normalizeMediaType(value)
+  return mediaType === 'application/json' || mediaType.endsWith('+json')
+}
+
+export function isTextLikeMediaType(value?: string): boolean {
+  const mediaType = normalizeMediaType(value)
+  if (!mediaType) return true
+  return (
+    mediaType.startsWith('text/') ||
+    isJsonMediaType(mediaType) ||
+    mediaType === 'application/xml' ||
+    mediaType.endsWith('+xml') ||
+    mediaType === 'application/x-www-form-urlencoded' ||
+    mediaType === 'application/javascript' ||
+    mediaType === 'application/ecmascript' ||
+    mediaType === 'image/svg+xml'
+  )
+}
+
+export function formatBytes(bytes?: number): string {
+  const size = Number(bytes || 0)
+  if (size < 1024) return `${size} B`
+  if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`
+  return `${(size / (1024 * 1024)).toFixed(1)} MB`
+}

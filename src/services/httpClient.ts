@@ -1,4 +1,5 @@
 import { translate } from '@/i18n'
+import { isTextLikeMediaType } from '@/utils/format'
 
 export interface ProxyRequestOptions {
   url: string
@@ -13,6 +14,9 @@ export interface ProxyResponse {
   statusText: string
   headers: Record<string, string>
   body: string
+  bodyEncoding?: 'text' | 'base64'
+  contentType?: string
+  bodySize?: number
   error?: string
   duration: number
 }
@@ -44,13 +48,21 @@ export async function sendRequest(options: ProxyRequestOptions): Promise<ProxyRe
     resp.headers.forEach((v, k) => {
       respHeaders[k] = v
     })
-    const body = await resp.text()
+    const contentType = resp.headers.get('content-type') || undefined
+    const textLike = isTextLikeMediaType(contentType)
+    const arrayBuffer = await resp.arrayBuffer()
+    const body = textLike
+      ? new TextDecoder().decode(arrayBuffer)
+      : arrayBufferToBase64(arrayBuffer)
     return {
       success: resp.ok,
       status: resp.status,
       statusText: resp.statusText,
       headers: respHeaders,
       body,
+      bodyEncoding: textLike ? 'text' : 'base64',
+      contentType,
+      bodySize: arrayBuffer.byteLength,
       duration: Date.now() - start,
     }
   } catch (e: any) {
@@ -64,4 +76,15 @@ export async function sendRequest(options: ProxyRequestOptions): Promise<ProxyRe
       duration: Date.now() - start,
     }
   }
+}
+
+function arrayBufferToBase64(buffer: ArrayBuffer): string {
+  let binary = ''
+  const bytes = new Uint8Array(buffer)
+  const chunkSize = 0x8000
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    const chunk = bytes.subarray(i, i + chunkSize)
+    binary += String.fromCharCode(...chunk)
+  }
+  return btoa(binary)
 }

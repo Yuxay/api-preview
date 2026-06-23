@@ -62,6 +62,9 @@ interface ProxyResponse {
   statusText: string;
   headers: Record<string, string>;
   body: string;
+  bodyEncoding?: 'text' | 'base64';
+  contentType?: string;
+  bodySize?: number;
   duration: number;
   error?: string;
 }

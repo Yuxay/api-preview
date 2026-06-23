@@ -88,6 +88,19 @@ describe('buildRequest', () => {
     expect(result.config!.body).toBe('{"name":"test"}')
   })
 
+  it('accepts raw text body for non-JSON content types', () => {
+    const api = makeApi({ method: 'POST' })
+    const opts = makeOpts({
+      body: 'plain text body',
+      headers: { 'Content-Type': 'text/plain' },
+    })
+    const result = buildRequest(api, opts)
+
+    expect(result.ok).toBe(true)
+    expect(result.config!.body).toBe('plain text body')
+    expect(result.config!.headers['Content-Type']).toBe('text/plain')
+  })
+
   it('sets Content-Type header for POST', () => {
     const api = makeApi({ method: 'POST' })
     const opts = makeOpts({ body: '{"x":1}' })
