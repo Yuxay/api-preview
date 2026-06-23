@@ -17,6 +17,11 @@ export interface MultiLoadResult {
   errors: string[];
 }
 
+export interface LoadSourcesOptions {
+  abortSignal?: AbortSignal;
+  requestIdBySourceId?: Record<string, string>;
+}
+
 function getBundledExampleSpec(url: string): OpenApiSpec | null {
   if (url === 'example://petstore') {
     return petstoreExample as unknown as OpenApiSpec;
@@ -68,9 +73,10 @@ export function buildApiId(
  */
 export async function loadSources(
   inputs: SourceInput[],
+  options: LoadSourcesOptions = {},
 ): Promise<MultiLoadResult> {
   const results = await Promise.allSettled(
-    inputs.map((input) => loadSingleSource(input)),
+    inputs.map((input) => loadSingleSource(input, options)),
   );
 
   const sources: SwaggerSource[] = [];
@@ -110,6 +116,7 @@ export async function loadSources(
 
 async function loadSingleSource(
   input: SourceInput,
+  options: LoadSourcesOptions = {},
 ): Promise<{ source: SwaggerSource; apis: ApiItem[] }> {
   let raw: { success: boolean; data?: unknown; error?: string };
 
@@ -125,20 +132,31 @@ async function loadSingleSource(
       raw = { success: true, data: bundledSpec };
     }
   } else if (window.electronAPI) {
-    raw = await window.electronAPI.fetchSwagger(input.url);
+    raw = await window.electronAPI.fetchSwagger(
+      input.url,
+      options.requestIdBySourceId?.[input.id],
+    );
   } else {
-    const resp = await fetch(input.url, {
-      headers: { Accept: 'application/json' },
-    });
-    if (!resp.ok) {
-      throw new Error(
-        translate('errors.http', {
-          status: resp.status,
-          statusText: resp.statusText,
-        }),
-      );
+    const controller = new AbortController();
+    const onAbort = () => controller.abort();
+    options.abortSignal?.addEventListener('abort', onAbort, { once: true });
+    try {
+      const resp = await fetch(input.url, {
+        headers: { Accept: 'application/json' },
+        signal: controller.signal,
+      });
+      if (!resp.ok) {
+        throw new Error(
+          translate('errors.http', {
+            status: resp.status,
+            statusText: resp.statusText,
+          }),
+        );
+      }
+      raw = { success: true, data: await resp.json() };
+    } finally {
+      options.abortSignal?.removeEventListener('abort', onAbort);
     }
-    raw = { success: true, data: await resp.json() };
   }
 
   if (!raw.success || !raw.data) {
@@ -205,63 +223,63 @@ export function deriveSourceName(url: string): string {
 const SOURCE_COLORS = [
   {
     hex: '#06b6d4',
-    bg:          'bg-[rgba(6,182,212,0.14)]',
-    bgHover:     'hover:bg-[rgba(6,182,212,0.06)]',
-    text:        'text-[#06b6d4]',
-    dot:         'bg-[#06b6d4]',
-    border:      'border-[rgba(6,182,212,0.35)]',
+    bg: 'bg-[rgba(6,182,212,0.14)]',
+    bgHover: 'hover:bg-[rgba(6,182,212,0.06)]',
+    text: 'text-[#06b6d4]',
+    dot: 'bg-[#06b6d4]',
+    border: 'border-[rgba(6,182,212,0.35)]',
     borderHover: 'hover:border-[rgba(6,182,212,0.20)]',
-    bar:         'border-l-[#06b6d4]',
+    bar: 'border-l-[#06b6d4]',
   },
   {
     hex: '#10b981',
-    bg:          'bg-[rgba(16,185,129,0.14)]',
-    bgHover:     'hover:bg-[rgba(16,185,129,0.06)]',
-    text:        'text-[#10b981]',
-    dot:         'bg-[#10b981]',
-    border:      'border-[rgba(16,185,129,0.35)]',
+    bg: 'bg-[rgba(16,185,129,0.14)]',
+    bgHover: 'hover:bg-[rgba(16,185,129,0.06)]',
+    text: 'text-[#10b981]',
+    dot: 'bg-[#10b981]',
+    border: 'border-[rgba(16,185,129,0.35)]',
     borderHover: 'hover:border-[rgba(16,185,129,0.20)]',
-    bar:         'border-l-[#10b981]',
+    bar: 'border-l-[#10b981]',
   },
   {
     hex: '#8b5cf6',
-    bg:          'bg-[rgba(139,92,246,0.14)]',
-    bgHover:     'hover:bg-[rgba(139,92,246,0.06)]',
-    text:        'text-[#8b5cf6]',
-    dot:         'bg-[#8b5cf6]',
-    border:      'border-[rgba(139,92,246,0.35)]',
+    bg: 'bg-[rgba(139,92,246,0.14)]',
+    bgHover: 'hover:bg-[rgba(139,92,246,0.06)]',
+    text: 'text-[#8b5cf6]',
+    dot: 'bg-[#8b5cf6]',
+    border: 'border-[rgba(139,92,246,0.35)]',
     borderHover: 'hover:border-[rgba(139,92,246,0.20)]',
-    bar:         'border-l-[#8b5cf6]',
+    bar: 'border-l-[#8b5cf6]',
   },
   {
     hex: '#f59e0b',
-    bg:          'bg-[rgba(245,158,11,0.14)]',
-    bgHover:     'hover:bg-[rgba(245,158,11,0.06)]',
-    text:        'text-[#f59e0b]',
-    dot:         'bg-[#f59e0b]',
-    border:      'border-[rgba(245,158,11,0.35)]',
+    bg: 'bg-[rgba(245,158,11,0.14)]',
+    bgHover: 'hover:bg-[rgba(245,158,11,0.06)]',
+    text: 'text-[#f59e0b]',
+    dot: 'bg-[#f59e0b]',
+    border: 'border-[rgba(245,158,11,0.35)]',
     borderHover: 'hover:border-[rgba(245,158,11,0.20)]',
-    bar:         'border-l-[#f59e0b]',
+    bar: 'border-l-[#f59e0b]',
   },
   {
     hex: '#f43f5e',
-    bg:          'bg-[rgba(244,63,94,0.14)]',
-    bgHover:     'hover:bg-[rgba(244,63,94,0.06)]',
-    text:        'text-[#f43f5e]',
-    dot:         'bg-[#f43f5e]',
-    border:      'border-[rgba(244,63,94,0.35)]',
+    bg: 'bg-[rgba(244,63,94,0.14)]',
+    bgHover: 'hover:bg-[rgba(244,63,94,0.06)]',
+    text: 'text-[#f43f5e]',
+    dot: 'bg-[#f43f5e]',
+    border: 'border-[rgba(244,63,94,0.35)]',
     borderHover: 'hover:border-[rgba(244,63,94,0.20)]',
-    bar:         'border-l-[#f43f5e]',
+    bar: 'border-l-[#f43f5e]',
   },
   {
     hex: '#6366f1',
-    bg:          'bg-[rgba(99,102,241,0.14)]',
-    bgHover:     'hover:bg-[rgba(99,102,241,0.06)]',
-    text:        'text-[#6366f1]',
-    dot:         'bg-[#6366f1]',
-    border:      'border-[rgba(99,102,241,0.35)]',
+    bg: 'bg-[rgba(99,102,241,0.14)]',
+    bgHover: 'hover:bg-[rgba(99,102,241,0.06)]',
+    text: 'text-[#6366f1]',
+    dot: 'bg-[#6366f1]',
+    border: 'border-[rgba(99,102,241,0.35)]',
     borderHover: 'hover:border-[rgba(99,102,241,0.20)]',
-    bar:         'border-l-[#6366f1]',
+    bar: 'border-l-[#6366f1]',
   },
 ];
 

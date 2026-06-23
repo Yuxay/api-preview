@@ -6,6 +6,8 @@ import { fileURLToPath } from 'url'
 
 /** 每个源最多保留的历史快照份数，超出自动清理最旧 */
 const MAX_SNAPSHOTS_PER_SOURCE = 10
+const SWAGGER_FETCH_TIMEOUT_MS = 30_000
+const pendingSwaggerFetches = new Map<string, AbortController>()
 
 /**
  * 仅允许 http/https 协议的网络请求，阻止 file://、ftp:// 等本地/危险协议（防 SSRF / 本地文件读取）。
@@ -26,10 +28,19 @@ export function validateRequestUrl(url: string): string | null {
 
 export function registerIpcHandlers(): void {
   // ========== Swagger JSON 获取 ==========
-  ipcMain.handle('swagger:fetch', async (_event, url: string) => {
+  ipcMain.handle('swagger:fetch', async (_event, url: string, requestId?: string) => {
     const invalid = validateRequestUrl(url)
     if (invalid) {
       return { success: false, error: invalid }
+    }
+    const controller = new AbortController()
+    let timedOut = false
+    const timer = setTimeout(() => {
+      timedOut = true
+      controller.abort()
+    }, SWAGGER_FETCH_TIMEOUT_MS)
+    if (requestId) {
+      pendingSwaggerFetches.set(requestId, controller)
     }
     try {
       const res = await fetch(url, {
@@ -38,6 +49,7 @@ export function registerIpcHandlers(): void {
           'User-Agent': 'OpenAPI-Light-Desktop/1.0',
         },
         redirect: 'follow',
+        signal: controller.signal,
       })
 
       const raw = await res.text()
@@ -52,8 +64,31 @@ export function registerIpcHandlers(): void {
       const data = JSON.parse(raw)
       return { success: true, data }
     } catch (err: any) {
+      if (err?.name === 'AbortError' || err?.code === 'ABORT_ERR') {
+        return {
+          success: false,
+          error: timedOut
+            ? `连接超时（超过 ${SWAGGER_FETCH_TIMEOUT_MS / 1000} 秒未响应）`
+            : '已取消加载',
+        }
+      }
       return { success: false, error: `无法连接: ${url} —— 请检查地址是否正确、网络是否可达。${err.message}` }
+    } finally {
+      clearTimeout(timer)
+      if (requestId) {
+        pendingSwaggerFetches.delete(requestId)
+      }
     }
+  })
+
+  ipcMain.handle('swagger:cancel', async (_event, requestId: string) => {
+    const controller = pendingSwaggerFetches.get(requestId)
+    if (!controller) {
+      return { success: false }
+    }
+    controller.abort()
+    pendingSwaggerFetches.delete(requestId)
+    return { success: true }
   })
 
   // ========== 本地持久化存储（异步 I/O） ==========

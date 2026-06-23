@@ -166,10 +166,25 @@ function stringifyValue(value: unknown): string {
 function paramTypeLabel(param: ApiParameter): string {
   const schema = param.schema
   if (!schema) return '-'
+  if (schema.oneOf?.length) return 'oneOf'
+  if (schema.anyOf?.length) return 'anyOf'
+  if (schema.allOf?.length) return 'allOf'
+  if (schema.$ref) return schema.$ref.split('/').pop() || schema.$ref
   if (schema.type === 'array') {
     return `${schema.items?.type || 'any'}[]`
   }
+  if ((schema.type === 'object' || !schema.type) && schema.properties) {
+    return 'object'
+  }
   return [schema.type, schema.format].filter(Boolean).join(' / ') || '-'
+}
+
+function hasParamSchemaDetails(param: ApiParameter): boolean {
+  const schema = param.schema
+  if (!schema) return false
+  if (schema.oneOf?.length || schema.anyOf?.length || schema.allOf?.length) return true
+  if (schema.type === 'array' && !!schema.items) return true
+  return !!((schema.type === 'object' || !schema.type) && schema.properties && Object.keys(schema.properties).length > 0)
 }
 
 function onModeChange(mode: 'form' | 'json') {
@@ -353,30 +368,42 @@ function responseMetaClass(code?: string) {
                 <span>{{ t('common.type') }}</span>
                 <span>{{ t('common.description') }}</span>
               </div>
-              <div
-                v-for="param in api.parameters"
-                :key="`${param.in}-${param.name}`"
-                class="group grid grid-cols-[minmax(0,1.4fr)_88px_minmax(0,1fr)_minmax(0,1.6fr)] gap-2 border-b border-white/5 px-3 py-2 text-xs last:border-0"
-              >
-                <span class="flex min-w-0 items-center gap-1.5">
-                  <span class="truncate font-mono text-slate-200">{{ param.name }}</span>
-                  <CopyButton :value="param.name" :title="t('common.copyName')" />
-                  <span
-                    v-if="param.required"
-                    class="shrink-0 rounded bg-red-500/15 px-1 py-0.5 text-[10px] text-red-300"
-                  >{{ t('common.required') }}</span>
-                </span>
-                <span class="text-slate-400">{{ param.in }}</span>
-                <span class="truncate font-mono text-sky-300/80">{{ paramTypeLabel(param) }}</span>
-                <span class="flex min-w-0 items-center gap-1 truncate text-slate-400" :title="param.description">
-                  <span class="truncate">{{ param.description || t('common.noDescription') }}</span>
-                  <CopyButton
-                    v-if="param.description"
-                    :value="param.description"
-                    :title="t('common.copyDescription')"
-                  />
-                </span>
-              </div>
+              <template v-for="param in api.parameters" :key="`${param.in}-${param.name}`">
+                <div
+                  class="group grid grid-cols-[minmax(0,1.4fr)_88px_minmax(0,1fr)_minmax(0,1.6fr)] gap-2 border-b border-white/5 px-3 py-2 text-xs"
+                >
+                  <span class="flex min-w-0 items-center gap-1.5">
+                    <span class="truncate font-mono text-slate-200">{{ param.name }}</span>
+                    <CopyButton :value="param.name" :title="t('common.copyName')" />
+                    <span
+                      v-if="param.required"
+                      class="shrink-0 rounded bg-red-500/15 px-1 py-0.5 text-[10px] text-red-300"
+                    >{{ t('common.required') }}</span>
+                  </span>
+                  <span class="text-slate-400">{{ param.in }}</span>
+                  <span class="truncate font-mono text-sky-300/80">{{ paramTypeLabel(param) }}</span>
+                  <span class="flex min-w-0 items-center gap-1 truncate text-slate-400" :title="param.description">
+                    <span class="truncate">{{ param.description || t('common.noDescription') }}</span>
+                    <CopyButton
+                      v-if="param.description"
+                      :value="param.description"
+                      :title="t('common.copyDescription')"
+                    />
+                  </span>
+                </div>
+
+                <div
+                  v-if="hasParamSchemaDetails(param)"
+                  class="border-b border-white/5 px-3 pb-3 pt-1 last:border-0"
+                >
+                  <div class="rounded-lg border border-white/10 bg-white/[0.02] p-2">
+                    <SchemaTable
+                      :schema="param.schema"
+                      :required-fields="param.schema.required"
+                    />
+                  </div>
+                </div>
+              </template>
             </div>
           </div>
         </CollapsiblePanel>

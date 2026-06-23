@@ -1,76 +1,112 @@
 <script setup lang="ts">
-import { nextTick, ref, watch } from 'vue'
-import { getUiState, saveUiState } from '@/utils/storage'
-import { getSourceColor } from '@/services/swaggerMultiLoader'
-import type { SwaggerSource } from '@/core/types'
-import type { DiffResult } from '@/core/apiDiffEngine'
-import AppIcon from '@/components/AppIcon.vue'
-import { useI18n } from '@/i18n'
+import { nextTick, ref, watch } from 'vue';
+import { getUiState, saveUiState } from '@/utils/storage';
+import { getSourceColor } from '@/services/swaggerMultiLoader';
+import type { SwaggerSource } from '@/core/types';
+import type { DiffResult } from '@/core/apiDiffEngine';
+import AppIcon from '@/components/AppIcon.vue';
+import { useI18n } from '@/i18n';
 
 const props = defineProps<{
-  sources: SwaggerSource[]
-  selectedSource: string
-  tags: string[]
-  selectedTag: string
-  apiCount: number
-  tagCounts: Record<string, number>
-  diffResults: DiffResult[]
-}>()
+  sources: SwaggerSource[];
+  selectedSource: string;
+  tags: string[];
+  selectedTag: string;
+  apiCount: number;
+  tagCounts: Record<string, number>;
+  diffResults: DiffResult[];
+}>();
 
 const emit = defineEmits<{
-  'select-source': [id: string]
-  'select-tag': [tag: string]
-  'remove-source': [id: string]
-  'rename-source': [id: string, name: string]
-  'toggle-sidebar': []
-}>()
+  'select-source': [id: string];
+  'select-tag': [tag: string];
+  'remove-source': [id: string];
+  'rename-source': [id: string, name: string];
+  'move-source': [draggedId: string, targetId: string];
+  'toggle-sidebar': [];
+}>();
 
-const sourcesOpen = ref(getUiState('sidebar-sources-open', true))
-const tagsOpen = ref(getUiState('sidebar-tags-open', true))
-const renamingId = ref('')
-const renameValue = ref('')
-const renameInputEl = ref<HTMLInputElement | null>(null)
+const sourcesOpen = ref(getUiState('sidebar-sources-open', true));
+const tagsOpen = ref(getUiState('sidebar-tags-open', true));
+const renamingId = ref('');
+const renameValue = ref('');
+const renameInputEl = ref<HTMLInputElement | null>(null);
+const draggingId = ref('');
+const dragOverId = ref('');
 
-const { t } = useI18n()
+const { t } = useI18n();
 
-watch(sourcesOpen, (value) => saveUiState('sidebar-sources-open', value))
-watch(tagsOpen, (value) => saveUiState('sidebar-tags-open', value))
+watch(sourcesOpen, (value) => saveUiState('sidebar-sources-open', value));
+watch(tagsOpen, (value) => saveUiState('sidebar-tags-open', value));
 
 function sourceDiffCount(sourceId: string) {
-  const diff = props.diffResults.find((item) => item.sourceId === sourceId)
-  if (!diff) return 0
-  return diff.summary.added + diff.summary.removed + diff.summary.modified
+  const diff = props.diffResults.find((item) => item.sourceId === sourceId);
+  if (!diff) return 0;
+  return diff.summary.added + diff.summary.removed + diff.summary.modified;
 }
 
 function startRename(id: string, name: string) {
-  renamingId.value = id
-  renameValue.value = name
+  renamingId.value = id;
+  renameValue.value = name;
   nextTick(() => {
-    renameInputEl.value?.focus()
-    renameInputEl.value?.select()
-  })
+    renameInputEl.value?.focus();
+    renameInputEl.value?.select();
+  });
 }
 
 function commitRename(id: string) {
-  const trimmed = renameValue.value.trim()
+  const trimmed = renameValue.value.trim();
   if (trimmed) {
-    emit('rename-source', id, trimmed)
+    emit('rename-source', id, trimmed);
   }
-  renamingId.value = ''
+  renamingId.value = '';
 }
 
 function cancelRename() {
-  renamingId.value = ''
+  renamingId.value = '';
+}
+
+function onDragStart(event: DragEvent, id: string) {
+  draggingId.value = id;
+  event.dataTransfer?.setData('text/plain', id);
+  event.dataTransfer?.setDragImage?.(event.currentTarget as Element, 12, 12);
+}
+
+function onDragEnter(id: string) {
+  if (!draggingId.value || draggingId.value === id) return;
+  dragOverId.value = id;
+}
+
+function onDragEnd() {
+  draggingId.value = '';
+  dragOverId.value = '';
+}
+
+function onDrop(targetId: string) {
+  if (draggingId.value && draggingId.value !== targetId) {
+    emit('move-source', draggingId.value, targetId);
+  }
+  onDragEnd();
 }
 </script>
 
 <template>
   <aside class="panel-surface flex h-full min-h-0 flex-col overflow-hidden">
-    <div class="flex items-start justify-between border-b border-white/10 px-4 py-4">
+    <div
+      class="flex items-start justify-between border-b border-white/10 px-4 py-4"
+    >
       <div>
-        <p class="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">{{ t('sidebar.workspace') }}</p>
-        <h2 class="mt-1 text-sm font-semibold text-slate-100">{{ t('sidebar.sourcesAndTags') }}</h2>
-        <p class="mt-1 text-xs text-slate-400">{{ t('sidebar.description') }}</p>
+        <p
+          class="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500"
+        >
+          {{ t('sidebar.workspace') }}
+        </p>
+        <h2 class="mt-1 text-sm font-semibold text-slate-100">
+          {{ t('sidebar.sourcesAndTags') }}
+        </h2>
+        <p class="mt-1 text-xs text-slate-400">
+          {{ t('sidebar.description') }}
+        </p>
       </div>
       <button
         type="button"
@@ -89,8 +125,15 @@ function cancelRename() {
           class="flex w-full items-center justify-between rounded-lg px-2 py-2 text-left"
           @click="sourcesOpen = !sourcesOpen"
         >
-          <span class="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">{{ t('common.source') }}</span>
-          <AppIcon :name="sourcesOpen ? 'minus' : 'plus'" :size="12" class="text-slate-500" />
+          <span
+            class="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500"
+            >{{ t('common.source') }}</span
+          >
+          <AppIcon
+            :name="sourcesOpen ? 'minus' : 'plus'"
+            :size="12"
+            class="text-slate-500"
+          />
         </button>
 
         <div v-if="sourcesOpen" class="mt-1 space-y-1">
@@ -101,23 +144,66 @@ function cancelRename() {
             @click="emit('select-source', '__ALL__')"
           >
             <span class="h-2 w-2 rounded-full bg-slate-500" />
-            <span class="min-w-0 flex-1 truncate">{{ t('sidebar.allSources') }}</span>
-            <span class="text-xs text-slate-500">{{ sources.reduce((sum, source) => sum + source.apis.length, 0) }}</span>
+            <span class="min-w-0 flex-1 truncate">{{
+              t('sidebar.allSources')
+            }}</span>
+            <span class="text-xs text-slate-500">{{
+              sources.reduce((sum, source) => sum + source.apis.length, 0)
+            }}</span>
           </button>
 
           <div
             v-for="(source, index) in sources"
             :key="source.id"
             class="group cursor-pointer rounded-lg border transition"
-            :class="selectedSource === source.id
-              ? [getSourceColor(index).bg, getSourceColor(index).border, getSourceColor(index).text]
-              : ['border-transparent', getSourceColor(index).text, getSourceColor(index).bgHover, getSourceColor(index).borderHover]"
+            :class="
+              selectedSource === source.id
+                ? [
+                    getSourceColor(index).bg,
+                    getSourceColor(index).border,
+                    getSourceColor(index).text,
+                  ]
+                : [
+                    'border-transparent',
+                    getSourceColor(index).text,
+                    getSourceColor(index).bgHover,
+                    getSourceColor(index).borderHover,
+                  ]
+            "
+            :draggable="renamingId !== source.id"
+            :style="{
+              opacity: draggingId === source.id ? '0.65' : '1',
+              borderStyle:
+                dragOverId === source.id && draggingId !== source.id
+                  ? 'dashed'
+                  : undefined,
+            }"
             :title="source.url"
+            @dragstart="onDragStart($event, source.id)"
+            @dragenter.prevent="onDragEnter(source.id)"
+            @dragover.prevent
+            @dragend="onDragEnd"
+            @drop.prevent="onDrop(source.id)"
             @click="emit('select-source', source.id)"
           >
             <div class="flex items-center gap-2 px-3 py-2">
               <div class="flex min-w-0 flex-1 items-center gap-2">
-                <span class="source-diamond source-marker-glow h-2 w-2 shrink-0" :class="[getSourceColor(index).dot, getSourceColor(index).text]" />
+                <button
+                  type="button"
+                  class="flex h-5 w-5 shrink-0 cursor-grab items-center justify-center rounded text-slate-600 transition hover:bg-white/10 hover:text-slate-300 active:cursor-grabbing"
+                  :title="t('common.source')"
+                  tabindex="-1"
+                  @click.stop
+                >
+                  <AppIcon name="more-vertical" :size="14" />
+                </button>
+                <span
+                  class="source-diamond source-marker-glow h-2 w-2 shrink-0"
+                  :class="[
+                    getSourceColor(index).dot,
+                    getSourceColor(index).text,
+                  ]"
+                />
                 <input
                   v-if="renamingId === source.id"
                   ref="renameInputEl"
@@ -140,11 +226,17 @@ function cancelRename() {
 
               <span
                 class="rounded-md px-1.5 py-0.5 text-[10px]"
-                :class="source.status === 'error'
-                  ? 'bg-red-500/15 text-red-300'
-                  : 'bg-white/10 text-slate-400'"
+                :class="
+                  source.status === 'error'
+                    ? 'bg-red-500/15 text-red-300'
+                    : 'bg-white/10 text-slate-400'
+                "
               >
-                {{ source.status === 'error' ? t('common.error') : source.apis.length }}
+                {{
+                  source.status === 'error'
+                    ? t('common.error')
+                    : source.apis.length
+                }}
               </span>
 
               <span
@@ -176,7 +268,9 @@ function cancelRename() {
 
             <div class="px-3 pb-2 text-[11px] text-slate-500">
               <div class="truncate">{{ source.url }}</div>
-              <div v-if="source.error" class="truncate text-red-300">{{ source.error }}</div>
+              <div v-if="source.error" class="truncate text-red-300">
+                {{ source.error }}
+              </div>
             </div>
           </div>
         </div>
@@ -188,8 +282,15 @@ function cancelRename() {
           class="flex w-full items-center justify-between rounded-lg px-2 py-2 text-left"
           @click="tagsOpen = !tagsOpen"
         >
-          <span class="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">{{ t('common.tags') }}</span>
-          <AppIcon :name="tagsOpen ? 'minus' : 'plus'" :size="12" class="text-slate-500" />
+          <span
+            class="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500"
+            >{{ t('common.tags') }}</span
+          >
+          <AppIcon
+            :name="tagsOpen ? 'minus' : 'plus'"
+            :size="12"
+            class="text-slate-500"
+          />
         </button>
 
         <div v-if="tagsOpen" class="mt-1 space-y-1">
@@ -199,7 +300,9 @@ function cancelRename() {
             :class="selectedTag === '__ALL__' ? 'sidebar-item-active' : ''"
             @click="emit('select-tag', '__ALL__')"
           >
-            <span class="min-w-0 flex-1 truncate">{{ t('sidebar.allApis') }}</span>
+            <span class="min-w-0 flex-1 truncate">{{
+              t('sidebar.allApis')
+            }}</span>
             <span class="text-xs text-slate-500">{{ apiCount }}</span>
           </button>
 
@@ -212,7 +315,9 @@ function cancelRename() {
             @click="emit('select-tag', tag)"
           >
             <span class="min-w-0 flex-1 truncate">{{ tag }}</span>
-            <span class="text-xs text-slate-500">{{ tagCounts[tag] || 0 }}</span>
+            <span class="text-xs text-slate-500">{{
+              tagCounts[tag] || 0
+            }}</span>
           </button>
         </div>
       </section>

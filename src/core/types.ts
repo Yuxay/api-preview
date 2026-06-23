@@ -73,8 +73,10 @@ export interface OpenApiSpec {
   paths: Record<string, PathItem>
   components?: {
     schemas?: Record<string, ApiSchema>
+    parameters?: Record<string, ApiParameter>
     securitySchemes?: Record<string, unknown>
   }
+  definitions?: Record<string, ApiSchema>
   tags?: { name: string; description?: string }[]
   security?: Record<string, string[]>[]
 }

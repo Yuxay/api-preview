@@ -9,11 +9,13 @@ import {
   type SourceInput,
 } from '@/services/swaggerMultiLoader'
 import { saveSnapshot, getSnapshot, extractSchemas } from '@/services/swaggerSnapshot'
-import { saveUrl } from '@/utils/storage'
+import { getUiState, saveUiState, saveUrl } from '@/utils/storage'
 import { diffApis, type DiffResult } from '@/core/apiDiffEngine'
 import { computeAffectedApis } from '@/core/impactAnalysis'
 import { groupByTag } from '@/core/openapiParser'
 import { translate } from '@/i18n'
+
+const SOURCE_ORDER_STORAGE_KEY = 'source-order'
 
 export interface UseSwaggerReturn {
   // 状态
@@ -44,6 +46,8 @@ export interface UseSwaggerReturn {
   removeSource: (id: string) => void
   renameSource: (id: string, name: string) => Promise<void>
   reloadAll: () => Promise<void>
+  cancelLoading: () => Promise<void>
+  moveSource: (draggedId: string, targetId: string) => void
   selectTag: (tag: string) => void
   selectApi: (api: ApiItem) => void
 }
@@ -62,6 +66,15 @@ export function useSwagger(): UseSwaggerReturn {
   const searchIndex = ref<ApiSearchEntry[]>([])
   const diffResults = ref<DiffResult[]>([])
   const showDiff = ref(false)
+  const storedSourceOrder = ref<string[]>(getUiState<string[]>(SOURCE_ORDER_STORAGE_KEY, []))
+  let loadSeq = 0
+  let activeLoad:
+    | {
+        id: number
+        controller: AbortController | null
+        requestIds: string[]
+      }
+    | null = null
 
   const tags = computed(() => [...tagGroups.value.keys()])
 
@@ -102,6 +115,62 @@ export function useSwagger(): UseSwaggerReturn {
         d.schemas.length > 0
     )
   )
+
+  function persistSourceOrder(nextSources: SwaggerSource[] = sources.value) {
+    storedSourceOrder.value = nextSources.map((source) => source.id)
+    saveUiState(SOURCE_ORDER_STORAGE_KEY, storedSourceOrder.value)
+  }
+
+  function orderSources(nextSources: SwaggerSource[]): SwaggerSource[] {
+    const rank = new Map(storedSourceOrder.value.map((id, index) => [id, index]))
+    return [...nextSources].sort((a, b) => {
+      const aRank = rank.get(a.id)
+      const bRank = rank.get(b.id)
+      if (aRank !== undefined && bRank !== undefined) return aRank - bRank
+      if (aRank !== undefined) return -1
+      if (bRank !== undefined) return 1
+      return 0
+    })
+  }
+
+  function orderApis(nextApis: ApiItem[], orderedSources: SwaggerSource[]): ApiItem[] {
+    const rank = new Map(orderedSources.map((source, index) => [source.id, index]))
+    return [...nextApis].sort((a, b) => {
+      const aRank = rank.get(a.sourceId || '') ?? Number.MAX_SAFE_INTEGER
+      const bRank = rank.get(b.sourceId || '') ?? Number.MAX_SAFE_INTEGER
+      if (aRank !== bRank) return aRank - bRank
+      return a.id.localeCompare(b.id)
+    })
+  }
+
+  function syncCollections(nextSources: SwaggerSource[], nextApis: ApiItem[]) {
+    const orderedSources = orderSources(nextSources)
+    sources.value = orderedSources
+    apis.value = orderApis(nextApis, orderedSources)
+    persistSourceOrder(orderedSources)
+  }
+
+  function beginLoad(inputs: SourceInput[]) {
+    loadSeq += 1
+    const controller = typeof AbortController !== 'undefined' ? new AbortController() : null
+    const requestIds = inputs.map((input) => `swagger-load:${loadSeq}:${input.id}`)
+    activeLoad = {
+      id: loadSeq,
+      controller,
+      requestIds,
+    }
+    return {
+      id: loadSeq,
+      abortSignal: controller?.signal,
+      requestIdBySourceId: Object.fromEntries(
+        inputs.map((input, index) => [input.id, requestIds[index]])
+      ) as Record<string, string>,
+    }
+  }
+
+  function isActiveLoad(loadId: number): boolean {
+    return activeLoad?.id === loadId
+  }
 
   function recalcTagGroups() {
     tagGroups.value = groupByTag(sourceFilteredApis.value)
@@ -172,13 +241,19 @@ export function useSwagger(): UseSwaggerReturn {
         return
       }
 
-      // 增量加载：仅拉取新源，与内存中已有源/接口合并（不重拉已存在源）
-      const { sources: loaded, allApis: newApis, errors: loadErrors } = await loadSources([
-        { id, name: srcName, url: inputUrl },
-      ])
+      const loadContext = beginLoad([{ id, name: srcName, url: inputUrl }])
 
-      sources.value = [...sources.value, ...loaded]
-      apis.value = [...apis.value, ...newApis]
+      // 增量加载：仅拉取新源，与内存中已有源/接口合并（不重拉已存在源）
+      const { sources: loaded, allApis: newApis, errors: loadErrors } = await loadSources(
+        [{ id, name: srcName, url: inputUrl }],
+        {
+          abortSignal: loadContext.abortSignal,
+          requestIdBySourceId: loadContext.requestIdBySourceId,
+        }
+      )
+      if (!isActiveLoad(loadContext.id)) return
+
+      syncCollections([...sources.value, ...loaded], [...apis.value, ...newApis])
       selectedSource.value = '__ALL__'
       selectedApi.value = null
       recalcTagGroups()
@@ -194,8 +269,12 @@ export function useSwagger(): UseSwaggerReturn {
         error.value = loadErrors.join('; ')
       }
     } catch (e: any) {
+      if (e?.name === 'AbortError') return
       error.value = e.message || translate('errors.loadFailed')
     } finally {
+      if (activeLoad) {
+        activeLoad = null
+      }
       loading.value = false
     }
   }
@@ -206,6 +285,7 @@ export function useSwagger(): UseSwaggerReturn {
     if (selectedSource.value === id) {
       selectedSource.value = '__ALL__'
     }
+    persistSourceOrder()
     recalcTagGroups()
   }
 
@@ -248,11 +328,15 @@ export function useSwagger(): UseSwaggerReturn {
         name: s.name,
         url: s.url,
       }))
+      const loadContext = beginLoad(inputs)
 
-      const { sources: loaded, allApis: merged, errors: loadErrors } = await loadSources(inputs)
+      const { sources: loaded, allApis: merged, errors: loadErrors } = await loadSources(inputs, {
+        abortSignal: loadContext.abortSignal,
+        requestIdBySourceId: loadContext.requestIdBySourceId,
+      })
+      if (!isActiveLoad(loadContext.id)) return
 
-      sources.value = loaded
-      apis.value = merged
+      syncCollections(loaded, merged)
       recalcTagGroups()
 
       // Diff
@@ -266,10 +350,42 @@ export function useSwagger(): UseSwaggerReturn {
         error.value = loadErrors.join('; ')
       }
     } catch (e: any) {
+      if (e?.name === 'AbortError') return
       error.value = e.message || translate('errors.reloadFailed')
     } finally {
+      if (activeLoad) {
+        activeLoad = null
+      }
       loading.value = false
     }
+  }
+
+  async function cancelLoading(): Promise<void> {
+    const current = activeLoad
+    if (!current) return
+    activeLoad = null
+    loading.value = false
+    current.controller?.abort()
+
+    if (window.electronAPI?.cancelSwaggerFetch) {
+      await Promise.allSettled(
+        current.requestIds.map((requestId) => window.electronAPI.cancelSwaggerFetch(requestId))
+      )
+    }
+  }
+
+  function moveSource(draggedId: string, targetId: string): void {
+    if (!draggedId || !targetId || draggedId === targetId) return
+    const fromIndex = sources.value.findIndex((source) => source.id === draggedId)
+    const toIndex = sources.value.findIndex((source) => source.id === targetId)
+    if (fromIndex < 0 || toIndex < 0) return
+
+    const nextSources = [...sources.value]
+    const [dragged] = nextSources.splice(fromIndex, 1)
+    nextSources.splice(toIndex, 0, dragged)
+    sources.value = nextSources
+    apis.value = orderApis(apis.value, nextSources)
+    persistSourceOrder(nextSources)
   }
 
   function selectTag(tag: string): void {
@@ -304,6 +420,8 @@ export function useSwagger(): UseSwaggerReturn {
     removeSource,
     renameSource,
     reloadAll,
+    cancelLoading,
+    moveSource,
     selectTag,
     selectApi,
   }

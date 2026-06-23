@@ -27,6 +27,7 @@ const emit = defineEmits<{
   'select-source': [id: string]
   'remove-source': [id: string]
   reload: []
+  'cancel-loading': []
   'toggle-diff': []
   'open-export': []
 }>()
@@ -213,14 +214,11 @@ const themeOptions: { mode: ThemeMode; key: string }[] = [
         <button
           type="button"
           class="toolbar-button toolbar-button-primary shrink-0 whitespace-nowrap"
-          :disabled="loading || !urlInput.trim()"
-          @click="openAddDialog"
+          :disabled="!loading && !urlInput.trim()"
+          @click="loading ? emit('cancel-loading') : openAddDialog()"
         >
-          <span
-            v-if="loading"
-            class="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white"
-          />
-          <span>{{ loading ? t('common.loading') : t('urlBar.addSource') }}</span>
+          <AppIcon :name="loading ? 'x' : 'plus'" :size="14" />
+          <span>{{ loading ? t('common.cancel') : t('urlBar.addSource') }}</span>
         </button>
 
         <!-- 加载示例项目（仅开发模式） -->
@@ -355,14 +353,12 @@ const themeOptions: { mode: ThemeMode; key: string }[] = [
           v-if="sources.length > 0"
           type="button"
           class="toolbar-button h-9 w-9 shrink-0 px-0"
-          :disabled="loading"
-          :title="t('common.refresh')"
-          @click="emit('reload')"
+          :title="loading ? t('common.cancel') : t('common.refresh')"
+          @click="loading ? emit('cancel-loading') : emit('reload')"
         >
           <AppIcon
-            name="refresh-cw"
+            :name="loading ? 'x' : 'refresh-cw'"
             :size="16"
-            :class="loading ? 'animate-spin' : ''"
           />
         </button>
 

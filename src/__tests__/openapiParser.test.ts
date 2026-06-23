@@ -172,6 +172,91 @@ describe('parseOpenApiSpec', () => {
     expect(pathParams[0].name).toBe('id')
     expect(pathParams[0].required).toBe(true)
   })
+
+  it('resolves parameter refs from components', () => {
+    const spec: OpenApiSpec = {
+      ...MINIMAL_SPEC,
+      components: {
+        parameters: {
+          UserId: {
+            name: 'id',
+            in: 'path',
+            required: true,
+            description: '用户 ID',
+            schema: { type: 'string' },
+          },
+        },
+      },
+      paths: {
+        '/users/{id}': {
+          get: {
+            parameters: [{ $ref: '#/components/parameters/UserId' }] as any,
+            responses: { '200': { description: 'OK' } },
+          },
+        },
+      } as any,
+    }
+
+    const apis = parseOpenApiSpec(spec)
+    expect(apis[0].parameters).toHaveLength(1)
+    expect(apis[0].parameters[0]).toMatchObject({
+      name: 'id',
+      in: 'path',
+      required: true,
+      description: '用户 ID',
+    })
+  })
+
+  it('merges allOf object properties for parameter schemas', () => {
+    const spec: OpenApiSpec = {
+      ...MINIMAL_SPEC,
+      components: {
+        schemas: {
+          BaseFilter: {
+            type: 'object',
+            required: ['keyword'],
+            properties: {
+              keyword: { type: 'string' },
+            },
+          },
+          RangeFilter: {
+            type: 'object',
+            properties: {
+              page: { type: 'integer' },
+            },
+          },
+        },
+      },
+      paths: {
+        '/reports': {
+          get: {
+            parameters: [
+              {
+                name: 'filter',
+                in: 'query',
+                required: false,
+                description: '筛选条件',
+                schema: {
+                  allOf: [
+                    { $ref: '#/components/schemas/BaseFilter' },
+                    { $ref: '#/components/schemas/RangeFilter' },
+                  ],
+                },
+              },
+            ],
+            responses: { '200': { description: 'OK' } },
+          },
+        },
+      } as any,
+    }
+
+    const apis = parseOpenApiSpec(spec)
+    expect(apis[0].parameters[0].schema.properties).toMatchObject({
+      keyword: { type: 'string' },
+      page: { type: 'integer' },
+    })
+    expect(apis[0].parameters[0].schema.required).toEqual(['keyword'])
+  })
 })
 
 describe('groupByTag', () => {

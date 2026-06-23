@@ -1,8 +1,11 @@
 import { contextBridge, ipcRenderer } from 'electron'
 
 contextBridge.exposeInMainWorld('electronAPI', {
-  fetchSwagger: (url: string) =>
-    ipcRenderer.invoke('swagger:fetch', url),
+  fetchSwagger: (url: string, requestId?: string) =>
+    ipcRenderer.invoke('swagger:fetch', url, requestId),
+
+  cancelSwaggerFetch: (requestId: string) =>
+    ipcRenderer.invoke('swagger:cancel', requestId),
 
   proxyRequest: (options: {
     url: string

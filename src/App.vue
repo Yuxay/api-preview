@@ -32,6 +32,8 @@ const {
   addSource,
   removeSource,
   reloadAll,
+  cancelLoading,
+  moveSource,
   selectTag,
   selectApi,
 } = useSwagger()
@@ -165,6 +167,7 @@ function expandApiList() {
         @select-source="onSelectSource"
         @remove-source="(id: string) => removeSource(id)"
         @reload="reloadAll"
+        @cancel-loading="cancelLoading"
         @toggle-diff="toggleDiff"
         @open-export="openExport()"
         @update:theme-mode="onThemeModeChange"
@@ -246,6 +249,7 @@ function expandApiList() {
             @select-source="onSelectSource"
             @remove-source="(id: string) => removeSource(id)"
             @rename-source="(id: string, name: string) => renameSource(id, name)"
+            @move-source="(draggedId: string, targetId: string) => moveSource(draggedId, targetId)"
             @toggle-sidebar="collapseSidebar"
           />
 
