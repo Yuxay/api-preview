@@ -73,24 +73,24 @@ function sortedProperties(schema: ApiSchema): [string, ApiSchema][] {
     <!-- 根 schema 没有 properties 时显示单行汇总 -->
     <div
       v-if="sortedProperties(schema).length === 0 && !schema.$ref && !schema.oneOf && !schema.anyOf"
-      class="text-xs text-dark-400 font-mono px-3 py-1"
+      class="schema-summary"
     >
       {{ typeLabel(schema) }}
-      <span v-if="exampleText(schema)" class="text-dark-600 ml-2">{{ t('common.example') }}: {{ exampleText(schema) }}</span>
-      <span v-if="schema.description" class="text-dark-600 ml-2">{{ schema.description }}</span>
+      <span v-if="exampleText(schema)" class="schema-summary-meta">{{ t('common.example') }}: {{ exampleText(schema) }}</span>
+      <span v-if="schema.description" class="schema-summary-meta">{{ schema.description }}</span>
     </div>
 
     <!-- $ref 引用 -->
-    <div v-else-if="schema.$ref" class="text-xs text-dark-400 font-mono px-3 py-1">
+    <div v-else-if="schema.$ref" class="schema-summary">
       → {{ schema.$ref.split('/').pop() }}
     </div>
 
     <!-- oneOf / anyOf / allOf -->
-    <div v-else-if="schema.oneOf || schema.anyOf || schema.allOf" class="px-3 py-1 space-y-1">
+    <div v-else-if="schema.oneOf || schema.anyOf || schema.allOf" class="space-y-1 px-3 py-1">
       <div
         v-for="(sub, i) in (schema.oneOf || schema.anyOf || schema.allOf || [])"
         :key="i"
-        class="border border-dark-700 rounded"
+        class="schema-box"
       >
         <SchemaTable
           :schema="sub"
@@ -102,14 +102,14 @@ function sortedProperties(schema: ApiSchema): [string, ApiSchema][] {
 
     <!-- 对象：按 properties 生成表格行 -->
     <template v-else>
-      <table class="w-full text-xs">
+      <table class="schema-table">
         <thead v-if="depth === 0 || depth === undefined">
-          <tr class="border-b border-dark-700 text-dark-500">
-            <th class="text-left font-medium px-3 py-1.5 w-32">{{ t('schema.field') }}</th>
-            <th class="text-left font-medium px-3 py-1.5 w-24">{{ t('common.type') }}</th>
-            <th class="text-left font-medium px-3 py-1.5 w-10">{{ t('common.required') }}</th>
-            <th class="text-left font-medium px-3 py-1.5">{{ t('common.description') }}</th>
-            <th class="text-left font-medium px-3 py-1.5">{{ t('common.example') }}</th>
+          <tr class="schema-table-head">
+            <th class="schema-cell w-32 text-left font-medium">{{ t('schema.field') }}</th>
+            <th class="schema-cell w-24 text-left font-medium">{{ t('common.type') }}</th>
+            <th class="schema-cell w-10 text-left font-medium">{{ t('common.required') }}</th>
+            <th class="schema-cell text-left font-medium">{{ t('common.description') }}</th>
+            <th class="schema-cell text-left font-medium">{{ t('common.example') }}</th>
           </tr>
         </thead>
         <tbody>
@@ -117,25 +117,25 @@ function sortedProperties(schema: ApiSchema): [string, ApiSchema][] {
             <!-- 可展开的对象行 -->
             <template v-if="hasChildren(prop) || prop.$ref || prop.oneOf || prop.anyOf">
               <tr
-                class="border-b border-dark-800/50 hover:bg-dark-800/30 cursor-pointer transition-colors group"
+                class="schema-row schema-row-expand group"
                 @click="toggle(name)"
               >
-                <td class="px-3 py-1.5 font-mono text-dark-200 relative">
+                <td class="schema-cell schema-field-name">
                   <AppIcon
                     :name="isExpanded(name) ? 'chevron-down' : 'chevron-right'"
                     :size="10"
-                    class="mr-1 inline-block align-baseline text-dark-500"
+                    class="schema-toggle"
                   />
                   {{ name }}
-                  <span v-if="isRequired(name, schema.required)" class="text-red-400 ml-0.5">*</span>
+                  <span v-if="isRequired(name, schema.required)" class="schema-required ml-0.5">*</span>
                   <CopyButton :value="name" :title="t('schema.copyField')" />
                 </td>
-                <td class="px-3 py-1.5 text-dark-400 font-mono">{{ typeLabel(prop) }}</td>
-                <td class="px-3 py-1.5">
-                  <span v-if="isRequired(name, schema.required)" class="text-red-400 font-bold">{{ t('common.yes') }}</span>
-                  <span v-else class="text-dark-600">{{ t('common.no') }}</span>
+                <td class="schema-cell schema-type">{{ typeLabel(prop) }}</td>
+                <td class="schema-cell">
+                  <span v-if="isRequired(name, schema.required)" class="schema-required-yes">{{ t('common.yes') }}</span>
+                  <span v-else class="schema-required-no">{{ t('common.no') }}</span>
                 </td>
-                <td class="px-3 py-1.5 text-dark-500 max-w-48 truncate relative">
+                <td class="schema-cell schema-description">
                   <span class="group-hover:inline hidden">{{ prop.description || '—' }}</span>
                   <CopyButton
                     v-if="prop.description"
@@ -143,13 +143,13 @@ function sortedProperties(schema: ApiSchema): [string, ApiSchema][] {
                     :title="t('schema.copyDescription')"
                   />
                 </td>
-                <td class="px-3 py-1.5 text-dark-500 font-mono max-w-32 truncate">
+                <td class="schema-cell schema-example">
                   {{ exampleText(prop) || '—' }}
                 </td>
               </tr>
               <!-- 展开子表 -->
-              <tr v-if="isExpanded(name)" class="bg-dark-850/50">
-                <td colspan="5" class="px-3 py-2 border-b border-dark-700/30">
+              <tr v-if="isExpanded(name)" class="schema-row-nested">
+                <td colspan="5" class="schema-cell border-b" style="border-color: color-mix(in srgb, var(--ui-border) 60%, transparent)">
                   <SchemaTable
                     :schema="prop"
                     :required-fields="prop.required"
@@ -162,27 +162,27 @@ function sortedProperties(schema: ApiSchema): [string, ApiSchema][] {
             <!-- Array 行 -->
             <template v-else-if="prop.type === 'array' && prop.items">
               <tr
-                class="border-b border-dark-800/50 hover:bg-dark-800/30 cursor-pointer transition-colors group"
+                class="schema-row schema-row-expand group"
                 @click="toggle(name)"
               >
-                <td class="px-3 py-1.5 font-mono text-dark-200">
+                <td class="schema-cell schema-field-name">
                   <AppIcon
                     :name="isExpanded(name) ? 'chevron-down' : 'chevron-right'"
                     :size="10"
-                    class="mr-1 inline-block align-baseline text-dark-500"
+                    class="schema-toggle"
                   />
                   {{ name }}
-                  <span v-if="isRequired(name, schema.required)" class="text-red-400 ml-0.5">*</span>
+                  <span v-if="isRequired(name, schema.required)" class="schema-required ml-0.5">*</span>
                   <CopyButton :value="name" :title="t('schema.copyField')" />
                 </td>
-                <td class="px-3 py-1.5 text-dark-400 font-mono">
+                <td class="schema-cell schema-type">
                   array&lt;{{ prop.items.type || 'object' }}&gt;
                 </td>
-                <td class="px-3 py-1.5">
-                  <span v-if="isRequired(name, schema.required)" class="text-red-400 font-bold">{{ t('common.yes') }}</span>
-                  <span v-else class="text-dark-600">{{ t('common.no') }}</span>
+                <td class="schema-cell">
+                  <span v-if="isRequired(name, schema.required)" class="schema-required-yes">{{ t('common.yes') }}</span>
+                  <span v-else class="schema-required-no">{{ t('common.no') }}</span>
                 </td>
-                <td class="px-3 py-1.5 text-dark-500 max-w-48 truncate relative">
+                <td class="schema-cell schema-description">
                   {{ prop.description || '—' }}
                   <CopyButton
                     v-if="prop.description"
@@ -190,13 +190,13 @@ function sortedProperties(schema: ApiSchema): [string, ApiSchema][] {
                     :title="t('schema.copyDescription')"
                   />
                 </td>
-                <td class="px-3 py-1.5 text-dark-500 font-mono max-w-32 truncate">
+                <td class="schema-cell schema-example">
                   —
                 </td>
               </tr>
-              <tr v-if="isExpanded(name)" class="bg-dark-850/50">
-                <td colspan="5" class="px-3 py-2 border-b border-dark-700/30">
-                  <div class="text-[10px] text-dark-600 mb-1">{{ t('schema.arrayItemType') }}</div>
+              <tr v-if="isExpanded(name)" class="schema-row-nested">
+                <td colspan="5" class="schema-cell border-b" style="border-color: color-mix(in srgb, var(--ui-border) 60%, transparent)">
+                  <div class="schema-array-label">{{ t('schema.arrayItemType') }}</div>
                   <SchemaTable
                     :schema="prop.items"
                     :required-fields="prop.items.required"
@@ -207,18 +207,18 @@ function sortedProperties(schema: ApiSchema): [string, ApiSchema][] {
             </template>
 
             <!-- 普通字段行 -->
-            <tr v-else class="border-b border-dark-800/50 hover:bg-dark-800/30 transition-colors group">
-              <td class="px-3 py-1.5 font-mono text-dark-200">
+            <tr v-else class="schema-row group">
+              <td class="schema-cell schema-field-name">
                 {{ name }}
-                <span v-if="isRequired(name, schema.required)" class="text-red-400 ml-0.5">*</span>
+                <span v-if="isRequired(name, schema.required)" class="schema-required ml-0.5">*</span>
                 <CopyButton :value="name" :title="t('schema.copyField')" />
               </td>
-              <td class="px-3 py-1.5 text-dark-400 font-mono">{{ typeLabel(prop) }}</td>
-              <td class="px-3 py-1.5">
-                <span v-if="isRequired(name, schema.required)" class="text-red-400 font-bold">{{ t('common.yes') }}</span>
-                <span v-else class="text-dark-600">{{ t('common.no') }}</span>
+              <td class="schema-cell schema-type">{{ typeLabel(prop) }}</td>
+              <td class="schema-cell">
+                <span v-if="isRequired(name, schema.required)" class="schema-required-yes">{{ t('common.yes') }}</span>
+                <span v-else class="schema-required-no">{{ t('common.no') }}</span>
               </td>
-              <td class="px-3 py-1.5 text-dark-500 max-w-48 truncate relative">
+              <td class="schema-cell schema-description">
                 {{ prop.description || '—' }}
                 <CopyButton
                   v-if="prop.description"
@@ -226,7 +226,7 @@ function sortedProperties(schema: ApiSchema): [string, ApiSchema][] {
                   :title="t('schema.copyDescription')"
                 />
               </td>
-              <td class="px-3 py-1.5 text-dark-500 font-mono max-w-32 truncate">
+              <td class="schema-cell schema-example">
                 {{ exampleText(prop) || '—' }}
               </td>
             </tr>

@@ -26,31 +26,32 @@ function toggle() {
 <template>
   <section class="panel-surface overflow-hidden">
     <button
-      class="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-white/[0.03]"
+      class="panel-header panel-header-compact w-full text-left transition-colors"
       type="button"
       @click="toggle"
     >
       <div class="min-w-0 flex-1">
         <div class="flex items-center gap-2">
-          <h3 class="text-sm font-semibold text-slate-100">{{ title }}</h3>
+          <h3 class="text-sm font-semibold" style="color: var(--ui-text)">{{ title }}</h3>
           <slot name="meta" />
         </div>
-        <p v-if="subtitle" class="mt-0.5 text-xs text-slate-400">{{ subtitle }}</p>
+        <p v-if="subtitle" class="mt-0.5 text-xs" style="color: var(--ui-text-muted)">{{ subtitle }}</p>
       </div>
       <div class="flex items-center gap-2" @click.stop>
         <slot name="actions" />
       </div>
-      <span class="text-xs text-slate-500">
+      <span class="text-xs" style="color: var(--ui-text-soft)">
         {{ modelValue ? t('common.hide') : t('common.show') }}
       </span>
       <AppIcon
         :name="modelValue ? 'minus' : 'plus'"
         :size="14"
-        class="shrink-0 text-slate-400"
+        class="shrink-0"
+        style="color: var(--ui-text-muted)"
       />
     </button>
 
-    <div v-show="modelValue" class="border-t border-white/10" :class="bodyClass">
+    <div v-show="modelValue" class="panel-divider border-t" :class="bodyClass">
       <slot />
     </div>
   </section>

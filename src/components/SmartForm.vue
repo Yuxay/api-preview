@@ -31,7 +31,7 @@ function depthOf(f: FormField): number {
 
 <template>
   <div class="space-y-2">
-    <div v-if="fields.length === 0" class="py-2 text-xs italic text-slate-500">
+    <div v-if="fields.length === 0" class="py-2 text-xs italic" style="color: var(--ui-text-soft)">
       {{ t('requestEditor.emptyRequestBody') }}
     </div>
     <div
@@ -39,9 +39,9 @@ function depthOf(f: FormField): number {
       :key="field.key"
       class="transition-colors"
       :class="[
-        depth > 0 ? 'surface-sunken' : 'surface-inset',
+        depth > 0 ? 'form-card form-card-sunken' : 'form-card form-card-inset',
         field.required && !field.value && field.value !== 0 && field.value !== false
-          ? 'border-l-2 border-l-amber-400/50'
+          ? 'form-card-required'
           : '',
       ]"
     >

@@ -174,13 +174,13 @@ const updaterBannerIcon = computed(() => {
 const updaterBannerClass = computed(() => {
   switch (updaterState.value?.phase) {
     case 'error':
-      return 'border-red-500/40 bg-red-500/15 text-red-600 dark:text-red-200';
+      return 'ui-alert-danger';
     case 'up-to-date':
-      return 'border-emerald-500/35 bg-emerald-500/10 text-emerald-700 dark:text-emerald-200';
+      return 'ui-alert-success';
     case 'downloaded':
-      return 'border-amber-500/35 bg-amber-500/10 text-amber-700 dark:text-amber-200';
+      return 'ui-alert-warning';
     default:
-      return 'border-sky-500/35 bg-sky-500/10 text-sky-700 dark:text-sky-200';
+      return 'ui-alert-info';
   }
 });
 
@@ -242,7 +242,7 @@ function expandApiList() {
 </script>
 
 <template>
-  <div class="h-full bg-ui-canvas text-slate-100">
+  <div class="h-full bg-ui-canvas" style="color: var(--ui-text)">
     <div class="relative flex h-full flex-col overflow-hidden">
       <UrlBar
         :token="globalToken"
@@ -279,12 +279,12 @@ function expandApiList() {
 
       <div
         v-if="error"
-        class="mx-3 mt-2 flex items-start justify-between gap-3 rounded-xl border border-red-500/40 bg-red-500/15 px-4 py-2.5 text-sm font-medium text-red-600 dark:text-red-200"
+        class="ui-alert ui-alert-danger mx-3 mt-2 justify-between"
       >
         <span class="min-w-0 flex-1">{{ error }}</span>
         <button
           type="button"
-          class="shrink-0 rounded-md p-0.5 text-red-500 transition hover:bg-red-500/20 hover:text-red-700 dark:text-red-300 dark:hover:text-red-100"
+          class="ui-alert-dismiss shrink-0"
           :title="t('common.close')"
           @click="error = ''"
         >
@@ -294,7 +294,7 @@ function expandApiList() {
 
       <div
         v-if="updaterBannerVisible && updaterMessage"
-        class="mx-3 mt-2 flex items-center gap-3 rounded-xl border px-4 py-2.5 text-sm font-medium"
+        class="ui-alert mx-3 mt-2 items-center"
         :class="updaterBannerClass"
       >
         <AppIcon
@@ -311,20 +311,20 @@ function expandApiList() {
           v-if="sources.length === 0 && !loading"
           class="panel-surface flex h-full items-center justify-center"
         >
-          <div class="max-w-xl space-y-4 text-center">
-            <div
-              class="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl border border-sky-400/15 bg-sky-400/[0.08]"
-            >
-              <AppIcon name="file-text" :size="32" class="text-sky-400" />
+          <div class="empty-state max-w-xl space-y-4 border-0 bg-transparent px-10 py-10">
+            <div class="empty-state-icon">
+              <AppIcon name="file-text" :size="32" />
             </div>
             <div class="space-y-2">
-              <h1 class="text-2xl font-semibold text-slate-100">ApiPreview</h1>
-              <p class="text-sm leading-6 text-slate-400">
+              <h1 class="text-2xl font-semibold" style="color: var(--ui-text)">
+                ApiPreview
+              </h1>
+              <p class="text-sm leading-6" style="color: var(--ui-text-muted)">
                 {{ t('app.intro') }}
               </p>
               <button
                 type="button"
-                class="inline-flex items-center gap-2 rounded-lg border border-sky-400/20 bg-sky-400/[0.08] px-4 py-2 text-sm font-medium text-sky-300 transition hover:bg-sky-400/[0.15] hover:text-sky-200"
+                class="toolbar-button toolbar-button-primary"
                 @click="
                   onAddSource('Swagger Petstore (示例)', 'example://petstore')
                 "
@@ -340,11 +340,17 @@ function expandApiList() {
           v-else-if="loading && sources.length === 0"
           class="panel-surface flex h-full items-center justify-center"
         >
-          <div class="space-y-3 text-center">
+          <div class="empty-state border-0 bg-transparent px-10 py-10">
             <div
-              class="mx-auto h-10 w-10 animate-spin rounded-full border-2 border-slate-700 border-t-sky-400"
+              class="mx-auto h-10 w-10 animate-spin rounded-full border-2"
+              style="
+                border-color: color-mix(in srgb, var(--ui-border-strong) 90%, transparent);
+                border-top-color: var(--ui-accent);
+              "
             />
-            <p class="text-sm text-slate-400">{{ t('app.loadingDocs') }}</p>
+            <p class="mt-3 text-sm" style="color: var(--ui-text-muted)">
+              {{ t('app.loadingDocs') }}
+            </p>
           </div>
         </div>
 
@@ -380,21 +386,12 @@ function expandApiList() {
           <button
             v-if="sidebarCollapsed"
             type="button"
-            class="panel-surface flex h-full w-full cursor-pointer flex-col items-center justify-center gap-2 overflow-hidden px-1 transition hover:bg-white/[0.02]"
+            class="panel-rail-button collapse-toggle"
             :title="t('common.show')"
             @click="expandSidebar"
           >
-            <span
-              class="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-500"
-              style="writing-mode: vertical-rl"
-            >
-              {{ t('sidebar.workspace') }}
-            </span>
-            <AppIcon
-              name="chevron-right"
-              :size="14"
-              class="shrink-0 text-slate-500"
-            />
+            <span class="panel-rail-label">{{ t('sidebar.workspace') }}</span>
+            <AppIcon name="chevron-right" :size="14" class="shrink-0" />
           </button>
 
           <!-- 第二栏：API 列表 -->
@@ -415,21 +412,12 @@ function expandApiList() {
           <button
             v-if="apiListCollapsed"
             type="button"
-            class="panel-surface flex h-full w-full cursor-pointer flex-col items-center justify-center gap-2 overflow-hidden px-1 transition hover:bg-white/[0.02]"
+            class="panel-rail-button collapse-toggle"
             :title="t('common.show')"
             @click="expandApiList"
           >
-            <span
-              class="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-500"
-              style="writing-mode: vertical-rl"
-            >
-              {{ t('explorer.title') }}
-            </span>
-            <AppIcon
-              name="chevron-right"
-              :size="14"
-              class="shrink-0 text-slate-500"
-            />
+            <span class="panel-rail-label">{{ t('explorer.title') }}</span>
+            <AppIcon name="chevron-right" :size="14" class="shrink-0" />
           </button>
 
           <div class="flex min-w-0 flex-col gap-3 overflow-hidden">
@@ -443,9 +431,11 @@ function expandApiList() {
 
             <div
               v-else
-              class="panel-surface flex flex-1 flex-col items-center justify-center gap-4 px-8 text-center text-sm text-slate-400"
+              class="empty-state panel-surface flex flex-1 flex-col items-center justify-center gap-4 px-8"
             >
-              <AppIcon name="code" :size="40" class="text-slate-600" />
+              <div class="empty-state-icon h-14 w-14">
+                <AppIcon name="code" :size="28" />
+              </div>
               <p>{{ t('app.selectApiHint') }}</p>
             </div>
 

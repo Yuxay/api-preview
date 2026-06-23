@@ -30,6 +30,8 @@
   --ui-accent-soft: rgba(56, 189, 248, 0.14);
   --ui-btn: rgba(148, 163, 184, 0.1);
   --ui-btn-hover: rgba(148, 163, 184, 0.18);
+  --ui-overlay: rgba(2, 6, 23, 0.68);
+  --ui-overlay-strong: rgba(2, 6, 23, 0.78);
 
   /* ── 语义色 ── */
   --ui-success: #34d399;
@@ -104,7 +106,10 @@ html.light {
   --ui-warning-soft: rgba(217, 119, 6, 0.1);
   --ui-danger: #dc2626;
   --ui-danger-soft: rgba(220, 38, 38, 0.1);
-  --ui-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 14px 30px -16px rgba(15, 23, 42, 0.18);
+  --ui-overlay: rgba(15, 23, 42, 0.18);
+  --ui-overlay-strong: rgba(15, 23, 42, 0.28);
+  --ui-shadow:
+    0 1px 2px rgba(15, 23, 42, 0.04), 0 14px 30px -16px rgba(15, 23, 42, 0.18);
 }
 
 @layer base {
@@ -114,7 +119,9 @@ html.light {
     box-sizing: border-box;
   }
 
-  html, body, #app {
+  html,
+  body,
+  #app {
     height: 100%;
     overflow: hidden;
   }
@@ -125,7 +132,11 @@ html.light {
     line-height: 1.5;
     color: var(--ui-text);
     background:
-      radial-gradient(circle at top left, rgba(56, 189, 248, 0.05), transparent 24%),
+      radial-gradient(
+        circle at top left,
+        rgba(56, 189, 248, 0.05),
+        transparent 24%
+      ),
       linear-gradient(180deg, var(--ui-bg-alt) 0%, var(--ui-bg) 100%);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
@@ -133,7 +144,11 @@ html.light {
 
   html.light body {
     background:
-      radial-gradient(circle at top left, rgba(14, 165, 233, 0.08), transparent 24%),
+      radial-gradient(
+        circle at top left,
+        rgba(14, 165, 233, 0.08),
+        transparent 24%
+      ),
       linear-gradient(180deg, var(--ui-bg-alt) 0%, var(--ui-bg) 100%);
   }
 
@@ -156,6 +171,36 @@ html.light {
     background-color: var(--ui-panel-elevated);
     border-color: var(--ui-border);
     box-shadow: var(--ui-shadow);
+  }
+
+  .panel-header {
+    @apply flex items-start justify-between gap-3 border-b px-4 py-4;
+    border-color: var(--ui-border);
+  }
+
+  .panel-header-compact {
+    @apply px-4 py-3;
+  }
+
+  .panel-kicker {
+    @apply text-[11px] font-semibold uppercase tracking-[0.16em];
+    color: var(--ui-text-soft);
+  }
+
+  .panel-title {
+    @apply mt-1 text-sm font-semibold;
+    color: var(--ui-text);
+  }
+
+  .panel-description {
+    @apply mt-1 text-xs;
+    color: var(--ui-text-muted);
+  }
+
+  .surface-muted {
+    @apply rounded-lg border;
+    background-color: color-mix(in srgb, var(--ui-inset) 72%, transparent);
+    border-color: var(--ui-border);
   }
 
   /* 嵌套在面板内的次级卡片（参数块、响应块等） */
@@ -197,7 +242,9 @@ html.light {
 
   .field-input {
     @apply rounded-md border outline-none;
-    transition: border-color var(--duration-base) var(--ease-out), box-shadow var(--duration-base) var(--ease-out);
+    transition:
+      border-color var(--duration-base) var(--ease-out),
+      box-shadow var(--duration-base) var(--ease-out);
     background-color: var(--ui-input);
     border-color: var(--ui-border);
     color: var(--ui-text);
@@ -210,6 +257,16 @@ html.light {
   .field-input:focus {
     border-color: color-mix(in srgb, var(--ui-accent) 60%, var(--ui-border));
     box-shadow: 0 0 0 2px var(--ui-accent-soft);
+  }
+
+  .field-input-invalid {
+    border-color: color-mix(
+      in srgb,
+      var(--ui-danger) 60%,
+      var(--ui-border)
+    ) !important;
+    box-shadow: 0 0 0 2px
+      color-mix(in srgb, var(--ui-danger-soft) 90%, transparent);
   }
 
   .toolbar-input {
@@ -347,11 +404,484 @@ html.light {
     background-color: var(--ui-btn);
   }
 
+  .table-row-active {
+    background-color: color-mix(
+      in srgb,
+      var(--ui-accent-soft) 78%,
+      transparent
+    );
+  }
+
+  .method-chip {
+    @apply inline-flex items-center rounded-lg border px-2 py-1 text-[11px] font-semibold uppercase;
+    border-color: var(--ui-border);
+  }
+
   .badge-soft {
     @apply inline-flex cursor-pointer items-center gap-1 rounded-md border px-2 py-1 text-[11px] font-medium;
     transition: all var(--duration-base) var(--ease-out);
     background-color: var(--ui-btn);
     border-color: var(--ui-border);
+  }
+
+  .panel-divider {
+    border-color: var(--ui-border);
+  }
+
+  .section-toggle-button {
+    @apply flex w-full items-center justify-between rounded-lg px-2 py-2 text-left;
+    transition:
+      background-color var(--duration-base) var(--ease-out),
+      color var(--duration-base) var(--ease-out);
+    color: var(--ui-text-muted);
+  }
+
+  .section-toggle-button:hover {
+    background-color: var(--ui-btn);
+    color: var(--ui-text);
+  }
+
+  .selection-checkbox {
+    width: 0.875rem;
+    height: 0.875rem;
+    accent-color: var(--ui-accent);
+  }
+
+  .icon-button {
+    @apply inline-flex h-9 w-9 items-center justify-center rounded-lg border border-transparent;
+    transition: all var(--duration-base) var(--ease-out);
+    color: var(--ui-text-soft);
+  }
+
+  .icon-button:hover {
+    background-color: var(--ui-btn);
+    border-color: var(--ui-border);
+    color: var(--ui-text);
+  }
+
+  .icon-button-sm {
+    @apply h-7 w-7 rounded-md;
+  }
+
+  .icon-button-xs {
+    @apply h-5 w-5 rounded-md;
+  }
+
+  .icon-button-active {
+    background-color: var(--ui-accent-soft);
+    border-color: color-mix(in srgb, var(--ui-accent) 35%, var(--ui-border));
+    color: var(--ui-accent);
+  }
+
+  .icon-button-success {
+    background-color: var(--ui-success-soft);
+    border-color: color-mix(in srgb, var(--ui-success) 30%, var(--ui-border));
+    color: var(--ui-success);
+  }
+
+  .icon-button-danger:hover {
+    background-color: var(--ui-danger-soft);
+    border-color: color-mix(in srgb, var(--ui-danger) 30%, var(--ui-border));
+    color: var(--ui-danger);
+  }
+
+  .meta-badge {
+    @apply inline-flex items-center gap-1.5 rounded-lg border px-2 py-1 text-xs font-medium;
+    background-color: var(--ui-btn);
+    border-color: var(--ui-border);
+    color: var(--ui-text-muted);
+  }
+
+  .meta-badge-count {
+    @apply rounded-lg;
+  }
+
+  .meta-badge-accent {
+    background-color: var(--ui-accent-soft);
+    border-color: color-mix(in srgb, var(--ui-accent) 35%, var(--ui-border));
+    color: var(--ui-accent);
+  }
+
+  .meta-badge-active {
+    background-color: var(--ui-accent-soft);
+    border-color: color-mix(in srgb, var(--ui-accent) 40%, var(--ui-border));
+    color: var(--ui-text);
+  }
+
+  .status-badge {
+    @apply inline-flex items-center rounded-md px-1.5 py-0.5 text-[10px] font-medium;
+  }
+
+  .status-badge-info {
+    background-color: var(--ui-accent-soft);
+    color: var(--ui-accent);
+  }
+
+  .status-badge-success {
+    background-color: var(--ui-success-soft);
+    color: var(--ui-success);
+  }
+
+  .status-badge-warning {
+    background-color: var(--ui-warning-soft);
+    color: var(--ui-warning);
+  }
+
+  .status-badge-danger {
+    background-color: var(--ui-danger-soft);
+    color: var(--ui-danger);
+  }
+
+  .status-badge-neutral {
+    background-color: var(--ui-btn);
+    color: var(--ui-text-muted);
+  }
+
+  .ghost-button {
+    @apply inline-flex items-center justify-center gap-2 rounded-md border px-2.5 py-1.5 text-xs font-medium;
+    transition: all var(--duration-base) var(--ease-out);
+    background-color: transparent;
+    border-color: var(--ui-border);
+    color: var(--ui-text-muted);
+  }
+
+  .ghost-button:hover {
+    background-color: var(--ui-btn);
+    border-color: var(--ui-border-strong);
+    color: var(--ui-text);
+  }
+
+  .text-button {
+    @apply text-xs font-medium;
+    transition: color var(--duration-base) var(--ease-out);
+    color: var(--ui-text-soft);
+  }
+
+  .text-button:hover {
+    color: var(--ui-accent);
+  }
+
+  .menu-item {
+    @apply flex w-full cursor-pointer items-center gap-2 border-b px-3 py-2 text-left text-xs last:border-0;
+    transition:
+      background-color var(--duration-base) var(--ease-out),
+      color var(--duration-base) var(--ease-out);
+    border-color: var(--ui-border);
+    color: var(--ui-text-muted);
+  }
+
+  .menu-item:hover {
+    background-color: var(--ui-btn);
+    color: var(--ui-text);
+  }
+
+  .empty-state {
+    @apply rounded-xl border border-dashed px-6 py-8 text-center;
+    background-color: color-mix(in srgb, var(--ui-inset) 70%, transparent);
+    border-color: var(--ui-border);
+    color: var(--ui-text-muted);
+  }
+
+  .empty-state-icon {
+    @apply mx-auto flex items-center justify-center rounded-2xl border;
+    width: 4rem;
+    height: 4rem;
+    background-color: var(--ui-accent-soft);
+    border-color: color-mix(in srgb, var(--ui-accent) 18%, var(--ui-border));
+    color: var(--ui-accent);
+  }
+
+  .ui-alert {
+    @apply flex items-start gap-3 rounded-xl border px-4 py-2.5 text-sm font-medium;
+  }
+
+  .ui-alert-info {
+    background-color: var(--ui-accent-soft);
+    border-color: color-mix(in srgb, var(--ui-accent) 30%, var(--ui-border));
+    color: var(--ui-accent);
+  }
+
+  .ui-alert-success {
+    background-color: var(--ui-success-soft);
+    border-color: color-mix(in srgb, var(--ui-success) 30%, var(--ui-border));
+    color: var(--ui-success);
+  }
+
+  .ui-alert-warning {
+    background-color: var(--ui-warning-soft);
+    border-color: color-mix(in srgb, var(--ui-warning) 30%, var(--ui-border));
+    color: var(--ui-warning);
+  }
+
+  .ui-alert-danger {
+    background-color: var(--ui-danger-soft);
+    border-color: color-mix(in srgb, var(--ui-danger) 30%, var(--ui-border));
+    color: var(--ui-danger);
+  }
+
+  .ui-alert-dismiss {
+    @apply icon-button icon-button-sm;
+    color: inherit;
+  }
+
+  .ui-alert-dismiss:hover {
+    background-color: color-mix(in srgb, currentColor 12%, transparent);
+    border-color: color-mix(in srgb, currentColor 18%, transparent);
+    color: inherit;
+  }
+
+  .overlay-backdrop {
+    background-color: var(--ui-overlay);
+    backdrop-filter: blur(8px);
+  }
+
+  .overlay-backdrop-strong {
+    background-color: var(--ui-overlay-strong);
+    backdrop-filter: blur(10px);
+  }
+
+  .panel-rail-button {
+    @apply panel-surface flex h-full w-full cursor-pointer flex-col items-center justify-center gap-2 overflow-hidden px-1;
+    transition:
+      background-color var(--duration-base) var(--ease-out),
+      border-color var(--duration-base) var(--ease-out);
+  }
+
+  .panel-rail-button:hover {
+    background-color: var(--ui-btn);
+    border-color: var(--ui-border-strong);
+  }
+
+  .panel-rail-label {
+    @apply text-[10px] font-semibold uppercase tracking-[0.16em];
+    color: var(--ui-text-soft);
+    writing-mode: vertical-rl;
+  }
+
+  .table-header-row {
+    @apply border-b px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.16em];
+    border-color: var(--ui-border);
+    color: var(--ui-text-soft);
+  }
+
+  .table-empty {
+    @apply flex h-full items-center justify-center px-6 text-center text-sm;
+    color: var(--ui-text-muted);
+  }
+
+  .data-note {
+    color: var(--ui-text-soft);
+  }
+
+  .hover-soft {
+    transition: background-color var(--duration-base) var(--ease-out);
+  }
+
+  .hover-soft:hover {
+    background-color: var(--ui-btn);
+  }
+
+  .input-table {
+    @apply overflow-hidden rounded-lg border;
+    border-color: var(--ui-border);
+  }
+
+  .input-table-head {
+    @apply text-left text-[11px] font-semibold uppercase tracking-[0.14em];
+    background-color: color-mix(in srgb, var(--ui-inset) 78%, transparent);
+    color: var(--ui-text-soft);
+  }
+
+  .input-table-row {
+    border-top: 1px solid color-mix(in srgb, var(--ui-border) 72%, transparent);
+  }
+
+  .input-table-cell {
+    @apply px-3 py-2.5 align-top;
+  }
+
+  .text-link-action {
+    @apply text-xs font-medium;
+    transition: color var(--duration-base) var(--ease-out);
+    color: var(--ui-accent);
+  }
+
+  .text-link-action:hover {
+    color: var(--ui-accent-hover);
+  }
+
+  .text-link-muted {
+    @apply text-xs font-medium;
+    transition: color var(--duration-base) var(--ease-out);
+    color: var(--ui-text-soft);
+  }
+
+  .text-link-muted:hover {
+    color: var(--ui-text);
+  }
+
+  .form-card {
+    @apply rounded-lg border px-3 py-2;
+    transition:
+      border-color var(--duration-base) var(--ease-out),
+      background-color var(--duration-base) var(--ease-out);
+    border-color: var(--ui-border);
+  }
+
+  .form-card-inset {
+    background-color: var(--ui-inset);
+  }
+
+  .form-card-sunken {
+    background-color: var(--ui-sunken);
+  }
+
+  .form-card-required {
+    border-left: 2px solid
+      color-mix(in srgb, var(--ui-warning) 55%, transparent);
+  }
+
+  .form-key {
+    @apply text-xs font-mono;
+    color: var(--ui-text);
+  }
+
+  .form-required-mark {
+    color: var(--ui-danger);
+  }
+
+  .form-type-chip {
+    @apply shrink-0 rounded px-1.5 py-0.5 text-[10px] font-mono;
+    background-color: var(--ui-btn);
+    color: var(--ui-text-soft);
+  }
+
+  .form-description {
+    @apply text-[10px];
+    color: var(--ui-text-soft);
+  }
+
+  .editor-note {
+    @apply text-[10px];
+    color: var(--ui-text-soft);
+  }
+
+  .tree-summary {
+    @apply flex cursor-pointer list-none items-center gap-2 marker:hidden;
+    color: var(--ui-code-text);
+  }
+
+  .tree-toggle {
+    @apply w-3 text-center;
+    color: var(--ui-text-soft);
+  }
+
+  .tree-key {
+    color: var(--ui-text-muted);
+  }
+
+  .tree-token {
+    color: var(--ui-text-soft);
+  }
+
+  .tree-rail {
+    @apply mt-1 space-y-1 pl-4;
+    border-left: 1px solid color-mix(in srgb, var(--ui-border) 78%, transparent);
+  }
+
+  .schema-summary {
+    @apply px-3 py-1 text-xs font-mono;
+    color: var(--ui-text-muted);
+  }
+
+  .schema-summary-meta {
+    @apply ml-2;
+    color: var(--ui-text-soft);
+  }
+
+  .schema-box {
+    @apply rounded border;
+    border-color: var(--ui-border);
+    background-color: color-mix(in srgb, var(--ui-inset) 72%, transparent);
+  }
+
+  .schema-table {
+    @apply w-full text-xs;
+  }
+
+  .schema-table-head {
+    border-bottom: 1px solid
+      color-mix(in srgb, var(--ui-border) 78%, transparent);
+    color: var(--ui-text-soft);
+  }
+
+  .schema-row {
+    border-bottom: 1px solid
+      color-mix(in srgb, var(--ui-border) 68%, transparent);
+    transition: background-color var(--duration-base) var(--ease-out);
+  }
+
+  .schema-row:hover {
+    background-color: color-mix(in srgb, var(--ui-btn) 88%, transparent);
+  }
+
+  .schema-row-expand {
+    cursor: pointer;
+  }
+
+  .schema-row-nested {
+    background-color: color-mix(in srgb, var(--ui-inset) 68%, transparent);
+  }
+
+  .schema-cell {
+    @apply px-3 py-1.5;
+  }
+
+  .schema-field-name {
+    @apply relative font-mono;
+    color: var(--ui-text);
+  }
+
+  .schema-type {
+    @apply font-mono;
+    color: var(--ui-text-muted);
+  }
+
+  .schema-description {
+    @apply max-w-48 truncate relative;
+    color: var(--ui-text-soft);
+  }
+
+  .schema-example {
+    @apply max-w-32 truncate font-mono;
+    color: var(--ui-text-soft);
+  }
+
+  .schema-muted {
+    color: var(--ui-text-soft);
+  }
+
+  .schema-toggle {
+    @apply mr-1 inline-block align-baseline;
+    color: var(--ui-text-soft);
+  }
+
+  .schema-required {
+    color: var(--ui-danger);
+  }
+
+  .schema-required-yes {
+    @apply font-bold;
+    color: var(--ui-danger);
+  }
+
+  .schema-required-no {
+    color: var(--ui-text-soft);
+  }
+
+  .schema-array-label {
+    @apply mb-1 text-[10px];
+    color: var(--ui-text-soft);
   }
 }
 
@@ -477,18 +1007,42 @@ html.light .placeholder\:text-slate-500::placeholder {
 }
 
 /* SchemaTable 使用的 dark-* 调色板（浅色模式补齐对比度） */
-html.light .text-dark-200 { color: #1e293b; }
-html.light .text-dark-300 { color: #334155; }
-html.light .text-dark-400 { color: #475569; }
-html.light .text-dark-500 { color: #64748b; }
-html.light .text-dark-600 { color: #94a3b8; }
-html.light .border-dark-700 { border-color: rgba(148, 163, 184, 0.32); }
-html.light .border-dark-700\/30 { border-color: rgba(148, 163, 184, 0.18); }
-html.light .border-dark-800\/50 { border-color: rgba(148, 163, 184, 0.18); }
-html.light .hover\:bg-dark-800\/30:hover { background-color: rgba(15, 23, 42, 0.04); }
-html.light .hover\:text-dark-300:hover { color: #334155; }
-html.light .bg-dark-850\/50 { background-color: rgba(15, 23, 42, 0.03); }
-.bg-dark-850\/50 { background-color: rgba(148, 163, 184, 0.06); }
+html.light .text-dark-200 {
+  color: #1e293b;
+}
+html.light .text-dark-300 {
+  color: #334155;
+}
+html.light .text-dark-400 {
+  color: #475569;
+}
+html.light .text-dark-500 {
+  color: #64748b;
+}
+html.light .text-dark-600 {
+  color: #94a3b8;
+}
+html.light .border-dark-700 {
+  border-color: rgba(148, 163, 184, 0.32);
+}
+html.light .border-dark-700\/30 {
+  border-color: rgba(148, 163, 184, 0.18);
+}
+html.light .border-dark-800\/50 {
+  border-color: rgba(148, 163, 184, 0.18);
+}
+html.light .hover\:bg-dark-800\/30:hover {
+  background-color: rgba(15, 23, 42, 0.04);
+}
+html.light .hover\:text-dark-300:hover {
+  color: #334155;
+}
+html.light .bg-dark-850\/50 {
+  background-color: rgba(15, 23, 42, 0.03);
+}
+.bg-dark-850\/50 {
+  background-color: rgba(148, 163, 184, 0.06);
+}
 
 /* 安全网：任何遗漏的深色代码面板在浅色模式回退为浅色凹陷面 */
 html.light .bg-slate-950\/98,
@@ -502,7 +1056,8 @@ html.light .bg-slate-950\/55 {
 
 /* JSON 文本区 */
 .json-editor {
-  font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
+  font-family:
+    'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
   font-size: 12px;
   line-height: 1.6;
   tab-size: 2;
@@ -531,7 +1086,9 @@ html.light .bg-slate-950\/55 {
 
 /* 来源徽章悬停抬升 */
 .source-badge {
-  transition: transform var(--duration-fast) var(--ease-out), box-shadow var(--duration-base) var(--ease-out);
+  transition:
+    transform var(--duration-fast) var(--ease-out),
+    box-shadow var(--duration-base) var(--ease-out);
 }
 .source-badge:hover {
   transform: translateY(-1px);

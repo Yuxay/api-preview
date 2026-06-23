@@ -92,25 +92,15 @@ function onDrop(targetId: string) {
 
 <template>
   <aside class="panel-surface flex h-full min-h-0 flex-col overflow-hidden">
-    <div
-      class="flex items-start justify-between border-b border-white/10 px-4 py-4"
-    >
+    <div class="panel-header">
       <div>
-        <p
-          class="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500"
-        >
-          {{ t('sidebar.workspace') }}
-        </p>
-        <h2 class="mt-1 text-sm font-semibold text-slate-100">
-          {{ t('sidebar.sourcesAndTags') }}
-        </h2>
-        <p class="mt-1 text-xs text-slate-400">
-          {{ t('sidebar.description') }}
-        </p>
+        <p class="panel-kicker">{{ t('sidebar.workspace') }}</p>
+        <h2 class="panel-title">{{ t('sidebar.sourcesAndTags') }}</h2>
+        <p class="panel-description">{{ t('sidebar.description') }}</p>
       </div>
       <button
         type="button"
-        class="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-slate-500 transition hover:bg-white/10 hover:text-slate-300"
+        class="icon-button icon-button-sm collapse-toggle mt-0.5 shrink-0"
         :title="t('common.hide')"
         @click="emit('toggle-sidebar')"
       >
@@ -122,18 +112,11 @@ function onDrop(targetId: string) {
       <section class="mb-3">
         <button
           type="button"
-          class="flex w-full items-center justify-between rounded-lg px-2 py-2 text-left"
+          class="section-toggle-button"
           @click="sourcesOpen = !sourcesOpen"
         >
-          <span
-            class="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500"
-            >{{ t('common.source') }}</span
-          >
-          <AppIcon
-            :name="sourcesOpen ? 'minus' : 'plus'"
-            :size="12"
-            class="text-slate-500"
-          />
+          <span class="panel-kicker">{{ t('common.source') }}</span>
+          <AppIcon :name="sourcesOpen ? 'minus' : 'plus'" :size="12" />
         </button>
 
         <div v-if="sourcesOpen" class="mt-1 space-y-1">
@@ -147,7 +130,7 @@ function onDrop(targetId: string) {
             <span class="min-w-0 flex-1 truncate">{{
               t('sidebar.allSources')
             }}</span>
-            <span class="text-xs text-slate-500">{{
+            <span class="text-xs" style="color: var(--ui-text-soft)">{{
               sources.reduce((sum, source) => sum + source.apis.length, 0)
             }}</span>
           </button>
@@ -190,7 +173,7 @@ function onDrop(targetId: string) {
               <div class="flex min-w-0 flex-1 items-center gap-2">
                 <button
                   type="button"
-                  class="flex h-5 w-5 shrink-0 cursor-grab items-center justify-center rounded text-slate-600 transition hover:bg-white/10 hover:text-slate-300 active:cursor-grabbing"
+                  class="icon-button icon-button-xs shrink-0 cursor-grab active:cursor-grabbing"
                   :title="t('common.source')"
                   tabindex="-1"
                   @click.stop
@@ -225,11 +208,11 @@ function onDrop(targetId: string) {
               </div>
 
               <span
-                class="rounded-md px-1.5 py-0.5 text-[10px]"
+                class="status-badge"
                 :class="
                   source.status === 'error'
-                    ? 'bg-red-500/15 text-red-300'
-                    : 'bg-white/10 text-slate-400'
+                    ? 'status-badge-danger'
+                    : 'status-badge-neutral'
                 "
               >
                 {{
@@ -241,7 +224,7 @@ function onDrop(targetId: string) {
 
               <span
                 v-if="sourceDiffCount(source.id) > 0"
-                class="rounded-md bg-amber-500/15 px-1.5 py-0.5 text-[10px] text-amber-300"
+                class="status-badge status-badge-warning"
               >
                 {{ sourceDiffCount(source.id) }}
               </span>
@@ -249,7 +232,7 @@ function onDrop(targetId: string) {
               <button
                 v-if="renamingId !== source.id"
                 type="button"
-                class="flex h-5 w-5 shrink-0 items-center justify-center rounded text-slate-600 opacity-0 transition hover:bg-white/10 hover:text-sky-300 group-hover:opacity-100"
+                class="icon-button icon-button-xs shrink-0 opacity-0 group-hover:opacity-100"
                 :title="t('common.rename')"
                 @click.stop="startRename(source.id, source.name)"
               >
@@ -258,7 +241,7 @@ function onDrop(targetId: string) {
 
               <button
                 type="button"
-                class="flex h-5 w-5 shrink-0 items-center justify-center rounded text-slate-600 opacity-0 transition hover:bg-red-500/15 hover:text-red-300 group-hover:opacity-100"
+                class="icon-button icon-button-xs icon-button-danger shrink-0 opacity-0 group-hover:opacity-100"
                 :title="t('common.remove')"
                 @click.stop="emit('remove-source', source.id)"
               >
@@ -266,9 +249,16 @@ function onDrop(targetId: string) {
               </button>
             </div>
 
-            <div class="px-3 pb-2 text-[11px] text-slate-500">
+            <div
+              class="px-3 pb-2 text-[11px]"
+              style="color: var(--ui-text-soft)"
+            >
               <div class="truncate">{{ source.url }}</div>
-              <div v-if="source.error" class="truncate text-red-300">
+              <div
+                v-if="source.error"
+                class="truncate"
+                style="color: var(--ui-danger)"
+              >
                 {{ source.error }}
               </div>
             </div>
@@ -279,18 +269,11 @@ function onDrop(targetId: string) {
       <section>
         <button
           type="button"
-          class="flex w-full items-center justify-between rounded-lg px-2 py-2 text-left"
+          class="section-toggle-button"
           @click="tagsOpen = !tagsOpen"
         >
-          <span
-            class="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500"
-            >{{ t('common.tags') }}</span
-          >
-          <AppIcon
-            :name="tagsOpen ? 'minus' : 'plus'"
-            :size="12"
-            class="text-slate-500"
-          />
+          <span class="panel-kicker">{{ t('common.tags') }}</span>
+          <AppIcon :name="tagsOpen ? 'minus' : 'plus'" :size="12" />
         </button>
 
         <div v-if="tagsOpen" class="mt-1 space-y-1">
@@ -303,7 +286,9 @@ function onDrop(targetId: string) {
             <span class="min-w-0 flex-1 truncate">{{
               t('sidebar.allApis')
             }}</span>
-            <span class="text-xs text-slate-500">{{ apiCount }}</span>
+            <span class="text-xs" style="color: var(--ui-text-soft)">{{
+              apiCount
+            }}</span>
           </button>
 
           <button
@@ -315,7 +300,7 @@ function onDrop(targetId: string) {
             @click="emit('select-tag', tag)"
           >
             <span class="min-w-0 flex-1 truncate">{{ tag }}</span>
-            <span class="text-xs text-slate-500">{{
+            <span class="text-xs" style="color: var(--ui-text-soft)">{{
               tagCounts[tag] || 0
             }}</span>
           </button>

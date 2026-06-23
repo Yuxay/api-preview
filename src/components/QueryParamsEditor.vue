@@ -29,27 +29,27 @@ const { t } = useI18n()
 </script>
 
 <template>
-  <div v-if="params.length > 0" class="overflow-hidden rounded-lg border border-white/10">
+  <div v-if="params.length > 0" class="input-table">
     <table class="w-full text-sm">
       <thead>
-        <tr class="bg-white/[0.03] text-left text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
-          <th class="px-3 py-2 font-medium w-28">{{ t('common.name') }}</th>
-          <th class="px-3 py-2 font-medium">{{ t('common.value') }}</th>
-          <th class="px-3 py-2 font-medium w-24">{{ t('common.type') }}</th>
-          <th class="px-3 py-2 font-medium">{{ t('common.notes') }}</th>
+        <tr class="input-table-head">
+          <th class="input-table-cell w-28 font-medium">{{ t('common.name') }}</th>
+          <th class="input-table-cell font-medium">{{ t('common.value') }}</th>
+          <th class="input-table-cell w-24 font-medium">{{ t('common.type') }}</th>
+          <th class="input-table-cell font-medium">{{ t('common.notes') }}</th>
         </tr>
       </thead>
       <tbody>
         <tr
           v-for="p in params"
           :key="p.name"
-          class="border-t border-white/5"
+          class="input-table-row"
         >
-          <td class="px-3 py-2.5 align-top">
-            <span class="font-mono text-xs text-slate-200">{{ p.name }}</span>
-            <span v-if="p.required" class="ml-1 text-xs text-red-400">*</span>
+          <td class="input-table-cell">
+            <span class="font-mono text-xs" style="color: var(--ui-text)">{{ p.name }}</span>
+            <span v-if="p.required" class="form-required-mark ml-1 text-xs">*</span>
           </td>
-          <td class="px-3 py-2.5">
+          <td class="input-table-cell">
             <input
               :value="modelValue[p.name] || ''"
               type="text"
@@ -63,12 +63,12 @@ const { t } = useI18n()
               }"
             />
           </td>
-          <td class="px-3 py-2.5 text-xs font-mono text-slate-500">
+          <td class="input-table-cell text-xs font-mono" style="color: var(--ui-text-soft)">
             {{ p.schema?.type || 'string' }}
           </td>
-          <td class="px-3 py-2.5 text-xs text-slate-400">
+          <td class="input-table-cell text-xs" style="color: var(--ui-text-muted)">
             <div class="truncate">{{ p.description || t('common.noDescription') }}</div>
-            <div v-if="formatExample(p)" class="mt-1 font-mono text-[11px] text-slate-500">
+            <div v-if="formatExample(p)" class="mt-1 font-mono text-[11px]" style="color: var(--ui-text-soft)">
               {{ t('common.example') }}: {{ formatExample(p) }}
             </div>
           </td>

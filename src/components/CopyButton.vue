@@ -23,7 +23,8 @@ async function copy() {
 <template>
   <button
     type="button"
-    class="ml-1.5 inline-flex cursor-pointer align-middle text-dark-600 opacity-0 transition-opacity hover:text-dark-300 group-hover:opacity-100"
+    class="ml-1.5 inline-flex cursor-pointer align-middle opacity-0 transition-opacity group-hover:opacity-100"
+    style="color: var(--ui-text-soft)"
     :title="title"
     @click.stop="copy"
   >
@@ -37,7 +38,8 @@ async function copy() {
       v-else
       name="check"
       :size="12"
-      class="shrink-0 text-emerald-400"
+      class="shrink-0"
+      style="color: var(--ui-success)"
     />
   </button>
 </template>

@@ -264,26 +264,20 @@ function downloadOutput() {
 <template>
   <div
     v-if="open"
-    class="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/60 px-4 py-6"
+    class="overlay-backdrop-strong fixed inset-0 z-[70] flex items-center justify-center px-4 py-6"
     @click.self="emit('close')"
   >
     <div
       class="popover-surface flex h-full max-h-[88vh] w-full max-w-6xl flex-col overflow-hidden"
     >
-      <div
-        class="flex items-start justify-between border-b border-white/10 px-5 py-4"
-      >
+      <div class="panel-header px-5">
         <div>
-          <h3 class="text-sm font-semibold text-slate-100">
-            {{ t('aiExport.title') }}
-          </h3>
-          <p class="mt-1 text-xs text-slate-400">
-            {{ t('aiExport.description') }}
-          </p>
+          <h3 class="panel-title">{{ t('aiExport.title') }}</h3>
+          <p class="panel-description">{{ t('aiExport.description') }}</p>
         </div>
         <button
           type="button"
-          class="flex h-7 w-7 items-center justify-center rounded-md text-slate-500 transition hover:bg-white/10 hover:text-slate-200"
+          class="icon-button icon-button-sm"
           :title="t('common.close')"
           @click="emit('close')"
         >
@@ -294,8 +288,8 @@ function downloadOutput() {
       <div
         class="grid min-h-0 flex-1 grid-cols-[minmax(320px,2fr)_minmax(0,3fr)]"
       >
-        <div class="flex min-h-0 flex-col border-r border-white/10">
-          <div class="space-y-2 border-b border-white/10 px-4 py-3">
+        <div class="panel-divider flex min-h-0 flex-col border-r">
+          <div class="panel-divider space-y-2 border-b px-4 py-3">
             <input
               v-model="filter"
               type="text"
@@ -303,35 +297,31 @@ function downloadOutput() {
               class="toolbar-input w-full"
             />
             <div class="flex items-center justify-between">
-              <span class="text-xs text-slate-400">
+              <span class="text-xs" style="color: var(--ui-text-muted)">
                 {{ t('aiExport.selectedCount', { count: selectedCount }) }}
               </span>
               <div class="flex flex-wrap justify-end gap-2">
                 <button
                   type="button"
-                  class="text-xs text-sky-400 transition hover:text-sky-300"
+                  class="text-link-action"
                   @click="selectAll"
                 >
                   {{ t('aiExport.selectAll') }}
                 </button>
-                <button
-                  type="button"
-                  class="text-xs text-slate-500 transition hover:text-slate-300"
-                  @click="clearAll"
-                >
+                <button type="button" class="text-link-muted" @click="clearAll">
                   {{ t('common.clear') }}
                 </button>
-                <span class="text-slate-700">|</span>
+                <span style="color: var(--ui-border-strong)">|</span>
                 <button
                   type="button"
-                  class="text-xs text-slate-500 transition hover:text-slate-300"
+                  class="text-link-muted"
                   @click="expandAllTags"
                 >
                   {{ t('aiExport.expandAll') }}
                 </button>
                 <button
                   type="button"
-                  class="text-xs text-slate-500 transition hover:text-slate-300"
+                  class="text-link-muted"
                   @click="collapseAllTags"
                 >
                   {{ t('aiExport.collapseAll') }}
@@ -341,20 +331,18 @@ function downloadOutput() {
           </div>
 
           <div class="min-h-0 flex-1 overflow-auto px-2 py-2">
-            <div
-              v-if="groups.length === 0"
-              class="px-3 py-6 text-center text-sm text-slate-500"
-            >
+            <div v-if="groups.length === 0" class="table-empty px-3 py-6">
               {{ t('explorer.empty') }}
             </div>
 
             <section v-for="group in groups" :key="group.tag" class="mb-1">
               <div
-                class="flex items-center gap-1 rounded-lg px-1 py-1 transition hover:bg-white/[0.03]"
+                class="hover-soft flex items-center gap-1 rounded-lg px-1 py-1"
+                style="color: var(--ui-text-muted)"
               >
                 <button
                   type="button"
-                  class="flex h-6 w-6 shrink-0 items-center justify-center rounded text-slate-500 transition hover:bg-white/10 hover:text-slate-300"
+                  class="icon-button icon-button-xs shrink-0"
                   :title="
                     isTagExpanded(group.tag)
                       ? t('common.hide')
@@ -375,19 +363,18 @@ function downloadOutput() {
                 >
                   <input
                     type="checkbox"
-                    class="h-3.5 w-3.5 accent-sky-500"
+                    class="selection-checkbox"
                     :checked="tagState(group) === 'all'"
                     :indeterminate.prop="tagState(group) === 'partial'"
                     @change="toggleTag(group)"
                   />
                   <span
-                    class="flex-1 truncate text-xs font-semibold uppercase tracking-[0.12em] text-slate-300"
+                    class="flex-1 truncate text-xs font-semibold uppercase tracking-[0.12em]"
+                    style="color: var(--ui-text)"
                   >
                     {{ group.tag }}
                   </span>
-                  <span
-                    class="rounded-md bg-white/5 px-1.5 py-0.5 text-[10px] text-slate-500"
-                  >
+                  <span class="status-badge status-badge-neutral">
                     {{ group.apis.length }}
                   </span>
                 </label>
@@ -395,43 +382,48 @@ function downloadOutput() {
 
               <div
                 v-if="isTagExpanded(group.tag)"
-                class="ml-3 mt-0.5 space-y-0.5 border-l border-white/5 pl-2"
+                class="tree-rail ml-3 mt-0.5 space-y-0.5 pl-2"
               >
                 <label
                   v-for="api in group.apis"
                   :key="exportApiKey(api)"
                   :ref="(el) => setApiRowRef(exportApiKey(api), el)"
-                  class="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 transition hover:bg-white/[0.03]"
-                  :class="isApiSelected(api) ? 'bg-sky-400/[0.06]' : ''"
+                  class="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 transition"
+                  :class="
+                    isApiSelected(api) ? 'meta-badge-active' : 'hover-soft'
+                  "
                 >
                   <input
                     type="checkbox"
-                    class="h-3.5 w-3.5 accent-sky-500"
+                    class="selection-checkbox"
                     :checked="isApiSelected(api)"
                     @change="toggleApi(api)"
                   />
                   <span
-                    class="inline-flex w-14 shrink-0 justify-center rounded border border-white/10 px-1 py-0.5 text-[10px] font-semibold uppercase"
+                    class="method-chip w-14 shrink-0 justify-center px-1 py-0.5 text-[10px]"
                     :class="getMethodColor(api.method)"
                   >
                     {{ api.method }}
                   </span>
                   <span
-                    class="min-w-0 flex-1 truncate font-mono text-xs text-slate-200"
+                    class="min-w-0 flex-1 truncate font-mono text-xs"
+                    style="color: var(--ui-text)"
                     :title="api.path"
                   >
                     {{ api.path }}
                   </span>
                   <span
                     v-if="api.summary"
-                    class="min-w-0 shrink truncate text-[11px] text-slate-500"
+                    class="min-w-0 shrink truncate text-[11px]"
+                    style="color: var(--ui-text-soft)"
                     :title="api.summary"
                   >
                     {{ api.summary }}
                   </span>
                   <span
                     v-if="multiSource && api.sourceName"
-                    class="shrink-0 text-[10px] text-slate-500"
+                    class="shrink-0 text-[10px]"
+                    style="color: var(--ui-text-soft)"
                   >
                     {{ api.sourceName }}
                   </span>
@@ -443,7 +435,7 @@ function downloadOutput() {
 
         <div class="flex min-h-0 flex-col">
           <div
-            class="flex flex-wrap items-center gap-2 border-b border-white/10 px-4 py-3"
+            class="panel-divider flex flex-wrap items-center gap-2 border-b px-4 py-3"
           >
             <div class="segmented-control">
               <button
@@ -496,12 +488,12 @@ function downloadOutput() {
           <div class="min-h-0 flex-1 overflow-auto p-4">
             <pre
               v-if="output"
-              class="json-editor surface-sunken min-h-full whitespace-pre-wrap p-4 text-xs leading-5 text-slate-300"
+              class="json-editor surface-sunken min-h-full whitespace-pre-wrap p-4 text-xs leading-5"
               >{{ output }}</pre
             >
             <div
               v-else
-              class="flex h-full items-center justify-center rounded-xl border border-dashed border-white/10 bg-white/[0.02] px-6 text-center text-sm text-slate-500"
+              class="empty-state flex h-full items-center justify-center px-6"
             >
               {{ t('aiExport.emptyHint') }}
             </div>

@@ -42,11 +42,11 @@ function preview(value: unknown) {
 }
 
 function valueClass(value: unknown) {
-  if (value === null) return 'text-slate-500'
-  if (typeof value === 'string') return 'text-emerald-300'
-  if (typeof value === 'number') return 'text-sky-300'
-  if (typeof value === 'boolean') return 'text-amber-300'
-  return 'text-slate-300'
+  if (value === null) return 'tree-token'
+  if (typeof value === 'string') return 'status-badge-success'
+  if (typeof value === 'number') return 'status-badge-info'
+  if (typeof value === 'boolean') return 'status-badge-warning'
+  return ''
 }
 </script>
 
@@ -57,16 +57,16 @@ function valueClass(value: unknown) {
       class="group"
       :open="depth < 1"
     >
-      <summary class="flex cursor-pointer list-none items-center gap-2 text-slate-300 marker:hidden">
-        <span class="w-3 text-center text-slate-500 group-open:hidden"><AppIcon name="plus" :size="12" /></span>
-        <span class="hidden w-3 text-center text-slate-500 group-open:inline"><AppIcon name="minus" :size="12" /></span>
-        <span v-if="name" class="text-slate-400">{{ name }}</span>
-        <span class="text-slate-500">{{ isArrayValue ? '[' : '{' }}</span>
-        <span class="text-slate-500">{{ preview(value) }}</span>
-        <span class="text-slate-500">{{ isArrayValue ? ']' : '}' }}</span>
+      <summary class="tree-summary">
+        <span class="tree-toggle group-open:hidden"><AppIcon name="plus" :size="12" /></span>
+        <span class="tree-toggle hidden group-open:inline"><AppIcon name="minus" :size="12" /></span>
+        <span v-if="name" class="tree-key">{{ name }}</span>
+        <span class="tree-token">{{ isArrayValue ? '[' : '{' }}</span>
+        <span class="tree-token">{{ preview(value) }}</span>
+        <span class="tree-token">{{ isArrayValue ? ']' : '}' }}</span>
       </summary>
 
-      <div class="mt-1 space-y-1 border-l border-white/10 pl-4">
+      <div class="tree-rail">
         <JsonTreeView
           v-for="[entryName, entryValue] in entries"
           :key="String(entryName)"
@@ -78,8 +78,8 @@ function valueClass(value: unknown) {
     </details>
 
     <div v-else class="flex items-start gap-2">
-      <span class="w-3 shrink-0 text-center text-slate-600">·</span>
-      <span v-if="name" class="text-slate-400">{{ name }}</span>
+      <span class="tree-toggle shrink-0">·</span>
+      <span v-if="name" class="tree-key">{{ name }}</span>
       <span class="break-all" :class="valueClass(value)">
         {{ typeof value === 'string' ? `"${value}"` : String(value) }}
       </span>
@@ -87,7 +87,7 @@ function valueClass(value: unknown) {
 
     <div
       v-if="(isArrayValue || isObjectValue) && entries.length === 0"
-      class="ml-5 text-slate-500"
+      class="ml-5 tree-token"
     >
       {{ isArrayValue ? '[]' : '{}' }}
     </div>

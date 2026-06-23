@@ -16,7 +16,7 @@ const { t } = useI18n()
   <div class="space-y-2">
     <div class="flex items-center justify-end">
       <button
-        class="rounded-md border border-white/10 px-2 py-1 text-[11px] text-slate-400 transition hover:border-white/15 hover:bg-white/[0.03] hover:text-slate-200"
+        class="ghost-button"
         @click="() => {
           const copy = { ...modelValue }
           copy[''] = ''
@@ -63,7 +63,7 @@ const { t } = useI18n()
           }"
         />
         <button
-          class="rounded-md border border-transparent px-2 py-2 text-xs text-slate-600 opacity-0 transition group-hover:opacity-100 hover:border-red-400/20 hover:bg-red-500/10 hover:text-red-300"
+          class="icon-button icon-button-danger h-auto w-auto rounded-md px-2 py-2 text-xs opacity-0 group-hover:opacity-100"
           :title="t('common.remove')"
           @click="() => {
             const copy = { ...modelValue }

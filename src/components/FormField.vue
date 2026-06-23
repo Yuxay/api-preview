@@ -40,7 +40,7 @@ function onChildChange(index: number, child: FormField) {
   <div class="px-3 py-2">
     <!-- 字段头部 -->
     <div
-      class="flex items-center gap-2 cursor-pointer select-none"
+      class="flex cursor-pointer select-none items-center gap-2"
       :class="{ 'cursor-pointer': hasChildren }"
       @click="hasChildren && toggleCollapse()"
     >
@@ -49,18 +49,19 @@ function onChildChange(index: number, child: FormField) {
         v-if="hasChildren"
         :name="field.collapsed ? 'chevron-right' : 'chevron-down'"
         :size="10"
-        class="w-3 shrink-0 text-dark-500"
+        class="w-3 shrink-0"
+        style="color: var(--ui-text-soft)"
       />
       <span v-else class="w-3 shrink-0"></span>
 
       <!-- 字段名 -->
-      <label class="min-w-[96px] shrink-0 text-xs font-mono text-slate-300">
+      <label class="form-key min-w-[96px] shrink-0">
         {{ field.key }}
-        <span v-if="field.required" class="text-red-400 ml-0.5">*</span>
+        <span v-if="field.required" class="form-required-mark ml-0.5">*</span>
       </label>
 
       <!-- 类型标签 -->
-      <span class="shrink-0 rounded bg-white/5 px-1.5 py-0.5 text-[10px] font-mono text-slate-500">
+      <span class="form-type-chip">
         {{ field.type }}{{ field.format ? `:${field.format}` : '' }}
       </span>
 
@@ -70,7 +71,7 @@ function onChildChange(index: number, child: FormField) {
       <!-- 描述 -->
       <span
         v-if="field.description && !field.collapsed"
-        class="max-w-[180px] truncate text-[10px] text-slate-500"
+        class="form-description max-w-[180px] truncate"
       >
         {{ field.description }}
       </span>
@@ -112,14 +113,14 @@ function onChildChange(index: number, child: FormField) {
 
       <!-- boolean → checkbox -->
       <template v-else-if="field.type === 'boolean'">
-        <label class="flex items-center gap-2 cursor-pointer">
+        <label class="flex cursor-pointer items-center gap-2">
           <input
             type="checkbox"
             :checked="Boolean(field.value)"
-            class="rounded border-white/10 bg-slate-900 text-sky-500 focus:ring-sky-500/30"
+            class="selection-checkbox"
             @change="(e: Event) => onValueChange((e.target as HTMLInputElement).checked)"
           />
-          <span class="text-xs font-mono text-slate-400">{{ String(field.value) }}</span>
+          <span class="text-xs font-mono" style="color: var(--ui-text-muted)">{{ String(field.value) }}</span>
         </label>
       </template>
 
@@ -132,14 +133,15 @@ function onChildChange(index: number, child: FormField) {
           class="json-editor field-input w-full resize-y px-2 py-1.5 text-xs"
           @input="(e: Event) => onValueChange((e.target as HTMLTextAreaElement).value)"
         ></textarea>
-        <p class="text-[10px] text-slate-500">{{ t('requestEditor.arrayHint') }}</p>
+        <p class="editor-note">{{ t('requestEditor.arrayHint') }}</p>
       </template>
 
       <!-- object → 递归 SmartForm -->
       <template v-else-if="field.type === 'object' && field.children">
         <p
           v-if="field.children.length === 0"
-          class="py-1 text-xs italic text-slate-500"
+          class="py-1 text-xs italic"
+          style="color: var(--ui-text-soft)"
         >
           {{ t('requestEditor.emptyObject') }}
         </p>
@@ -147,7 +149,7 @@ function onChildChange(index: number, child: FormField) {
         <div
           v-for="(child, ci) in field.children"
           :key="child.key"
-          class="ml-1 border-l border-white/10 pl-2"
+          class="tree-rail ml-1 pl-2"
         >
           <FormFieldComponent
             :field="child"
@@ -159,7 +161,7 @@ function onChildChange(index: number, child: FormField) {
     </div>
 
     <!-- 折叠时显示预览 -->
-    <div v-else-if="hasChildren" class="ml-5 mt-0.5 text-[10px] italic text-slate-500">
+    <div v-else-if="hasChildren" class="ml-5 mt-0.5 text-[10px] italic" style="color: var(--ui-text-soft)">
       {{ field.type === 'object' ? `{...}` : '[...]' }}
     </div>
   </div>

@@ -177,13 +177,10 @@ const themeOptions: { mode: ThemeMode; key: string }[] = [
   <header class="glass-surface sticky top-0 z-30">
     <!-- 收起状态：仅显示展开按钮 -->
     <div v-if="collapsed" class="flex items-center justify-between px-3 py-1.5">
-      <span
-        class="text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-500"
-        >{{ t('urlBar.toolbar') }}</span
-      >
+      <span class="panel-kicker">{{ t('urlBar.toolbar') }}</span>
       <button
         type="button"
-        class="flex h-6 w-6 items-center justify-center rounded-md text-slate-500 transition hover:bg-white/10 hover:text-slate-300"
+        class="icon-button icon-button-sm"
         :title="t('common.show')"
         @click="collapsed = false"
       >
@@ -195,10 +192,21 @@ const themeOptions: { mode: ThemeMode; key: string }[] = [
     <div v-else class="flex flex-col gap-3 px-3 py-3">
       <div class="flex flex-wrap items-center gap-2">
         <div
-          class="hidden min-w-[164px] items-center gap-2 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-xs text-slate-400 xl:flex"
+          class="surface-muted hidden min-w-[164px] items-center gap-2 px-3 py-2 text-xs xl:flex"
         >
-          <span class="h-2 w-2 rounded-full bg-sky-500/80" />
-          <span class="font-semibold uppercase tracking-[0.14em] text-slate-300"
+          <span
+            class="h-2 w-2 rounded-full"
+            style="
+              background-color: color-mix(
+                in srgb,
+                var(--ui-accent) 80%,
+                transparent
+              );
+            "
+          />
+          <span
+            class="font-semibold uppercase tracking-[0.14em]"
+            style="color: var(--ui-text)"
             >ApiPreview</span
           >
         </div>
@@ -223,13 +231,17 @@ const themeOptions: { mode: ThemeMode; key: string }[] = [
               v-for="entry in recentUrls"
               :key="entry.url"
               type="button"
-              class="flex w-full cursor-pointer items-center gap-2 border-b border-white/5 px-3 py-2 text-left text-xs transition-colors last:border-0 hover:bg-white/[0.03]"
+              class="menu-item text-xs last:border-0"
               @click="selectRecent(entry)"
             >
-              <span class="truncate font-medium text-slate-200">{{
-                entry.name || deriveSourceName(entry.url)
+              <span
+                class="truncate font-medium"
+                style="color: var(--ui-text)"
+                >{{ entry.name || deriveSourceName(entry.url) }}</span
+              >
+              <span class="truncate" style="color: var(--ui-text-soft)">{{
+                entry.url
               }}</span>
-              <span class="truncate text-slate-500">{{ entry.url }}</span>
             </button>
           </div>
         </div>
@@ -264,7 +276,8 @@ const themeOptions: { mode: ThemeMode; key: string }[] = [
           <AppIcon
             name="search"
             :size="14"
-            class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-500"
+            class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2"
+            style="color: var(--ui-text-soft)"
           />
           <input
             :value="searchInput"
@@ -276,7 +289,7 @@ const themeOptions: { mode: ThemeMode; key: string }[] = [
           <button
             v-if="searchInput"
             type="button"
-            class="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-slate-500 transition hover:text-slate-200"
+            class="absolute right-2 top-1/2 -translate-y-1/2 text-button"
             @click="clearSearch"
           >
             {{ t('common.clear') }}
@@ -288,7 +301,7 @@ const themeOptions: { mode: ThemeMode; key: string }[] = [
           <button
             type="button"
             class="toolbar-button h-9 w-9 px-0"
-            :class="showSettings ? 'border-sky-400/30 text-slate-100' : ''"
+            :class="showSettings ? 'icon-button-active' : ''"
             :title="t('settings.title')"
             @click="
               showToken = false;
@@ -302,9 +315,7 @@ const themeOptions: { mode: ThemeMode; key: string }[] = [
             v-if="showSettings"
             class="popover-surface absolute right-0 top-full z-50 mt-1 w-52 p-3"
           >
-            <p
-              class="mb-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500"
-            >
+            <p class="panel-kicker mb-1.5">
               {{ t('settings.language') }}
             </p>
             <div class="segmented-control w-full">
@@ -326,9 +337,7 @@ const themeOptions: { mode: ThemeMode; key: string }[] = [
               </button>
             </div>
 
-            <p
-              class="mb-1.5 mt-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500"
-            >
+            <p class="panel-kicker mb-1.5 mt-3">
               {{ t('theme.title') }}
             </p>
             <div class="grid gap-1">
@@ -347,7 +356,7 @@ const themeOptions: { mode: ThemeMode; key: string }[] = [
                   v-if="props.themeMode === option.mode"
                   name="check"
                   :size="14"
-                  class="text-sky-400"
+                  style="color: var(--ui-accent)"
                 />
               </button>
             </div>
@@ -361,9 +370,9 @@ const themeOptions: { mode: ThemeMode; key: string }[] = [
             class="toolbar-button h-9 w-9 px-0"
             :class="
               tokenActive
-                ? 'border-emerald-400/30 text-emerald-300'
+                ? 'icon-button-success'
                 : showToken
-                  ? 'border-sky-400/30 text-slate-100'
+                  ? 'icon-button-active'
                   : ''
             "
             :title="t('urlBar.tokenSettings')"
@@ -375,7 +384,8 @@ const themeOptions: { mode: ThemeMode; key: string }[] = [
             <AppIcon name="key" :size="16" />
             <span
               v-if="tokenActive"
-              class="absolute right-1 top-1 h-1.5 w-1.5 rounded-full bg-emerald-400"
+              class="absolute right-1 top-1 h-1.5 w-1.5 rounded-full"
+              style="background-color: var(--ui-success)"
             />
           </button>
 
@@ -383,9 +393,7 @@ const themeOptions: { mode: ThemeMode; key: string }[] = [
             v-if="showToken"
             class="popover-surface absolute right-0 top-full z-50 mt-1 w-80 p-3"
           >
-            <p
-              class="mb-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500"
-            >
+            <p class="panel-kicker mb-1.5">
               {{ t('common.token') }}
             </p>
             <input
@@ -447,17 +455,11 @@ const themeOptions: { mode: ThemeMode; key: string }[] = [
           v-if="hasDiff"
           type="button"
           class="toolbar-button shrink-0"
-          :class="
-            showDiff
-              ? 'border-amber-400/20 bg-amber-400/[0.08] text-amber-200'
-              : ''
-          "
+          :class="showDiff ? 'status-badge-warning border-transparent' : ''"
           @click="emit('toggle-diff')"
         >
           Diff
-          <span class="rounded-md bg-white/10 px-1.5 py-0.5 text-[11px]">{{
-            diffCount
-          }}</span>
+          <span class="status-badge status-badge-neutral">{{ diffCount }}</span>
         </button>
 
         <button
@@ -474,24 +476,18 @@ const themeOptions: { mode: ThemeMode; key: string }[] = [
         v-if="sources.length > 0"
         class="flex items-center gap-2 overflow-auto pb-0.5"
       >
-        <span
-          class="shrink-0 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500"
-        >
+        <span class="panel-kicker shrink-0">
           {{ t('urlBar.sourceFilter') }}
         </span>
 
         <button
           type="button"
           class="badge-soft shrink-0 transition"
-          :class="
-            selectedSource === '__ALL__'
-              ? 'border-sky-400/20 bg-sky-400/[0.08] text-slate-100'
-              : 'text-slate-400 hover:text-slate-100'
-          "
+          :class="selectedSource === '__ALL__' ? 'meta-badge-active' : ''"
           @click="emit('select-source', '__ALL__')"
         >
           {{ t('common.all') }}
-          <span class="text-slate-500">{{
+          <span style="color: var(--ui-text-soft)">{{
             sources.reduce((sum, source) => sum + source.apis.length, 0)
           }}</span>
         </button>
@@ -525,11 +521,13 @@ const themeOptions: { mode: ThemeMode; key: string }[] = [
               :class="[getSourceColor(index).dot, getSourceColor(index).text]"
             />
             <span>{{ source.name }}</span>
-            <span class="text-slate-500">{{ source.apis.length }}</span>
+            <span style="color: var(--ui-text-soft)">{{
+              source.apis.length
+            }}</span>
           </button>
           <button
             type="button"
-            class="-mr-0.5 ml-0.5 inline-flex h-4 w-4 items-center justify-center rounded text-slate-500 transition hover:bg-red-500/15 hover:text-red-300"
+            class="icon-button icon-button-danger -mr-0.5 ml-0.5 h-4 w-4 rounded"
             :title="t('urlBar.removeSource')"
             @click.stop="emit('remove-source', source.id)"
           >
@@ -549,20 +547,19 @@ const themeOptions: { mode: ThemeMode; key: string }[] = [
     <!-- 添加来源弹窗 -->
     <div
       v-if="showAddDialog"
-      class="fixed inset-0 z-[60] flex items-start justify-center bg-slate-950/50 px-4 pt-28"
+      class="overlay-backdrop-strong fixed inset-0 z-[60] flex items-start justify-center px-4 pt-28"
       @click.self="cancelAdd"
     >
       <div class="popover-surface w-full max-w-md p-5">
-        <h3 class="text-sm font-semibold text-slate-100">
+        <h3 class="text-sm font-semibold" style="color: var(--ui-text)">
           {{ t('urlBar.addSourceTitle') }}
         </h3>
-        <p class="mt-1 break-all text-xs text-slate-500">{{ urlInput }}</p>
+        <p class="mt-1 break-all text-xs" style="color: var(--ui-text-soft)">
+          {{ urlInput }}
+        </p>
 
         <div class="mt-4">
-          <label
-            class="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500"
-            >{{ t('urlBar.sourceName') }}</label
-          >
+          <label class="panel-kicker">{{ t('urlBar.sourceName') }}</label>
           <input
             ref="nameInputEl"
             v-model="pendingName"
@@ -572,7 +569,7 @@ const themeOptions: { mode: ThemeMode; key: string }[] = [
             @keydown.enter="confirmAdd"
             @keydown.esc="cancelAdd"
           />
-          <p class="mt-1.5 text-xs text-slate-500">
+          <p class="mt-1.5 text-xs" style="color: var(--ui-text-soft)">
             {{ t('urlBar.sourceNameHint') }}
           </p>
         </div>
