@@ -19,6 +19,34 @@ interface ElectronAPI {
     data?: unknown;
     error?: string;
   }>;
+  getUpdaterState: () => Promise<AppUpdaterState>;
+  checkForUpdates: () => Promise<AppUpdaterActionResult>;
+  quitAndInstallUpdate: () => Promise<AppUpdaterActionResult>;
+  onUpdaterStateChanged: (listener: (state: AppUpdaterState) => void) => void;
+}
+
+type UpdaterPhase =
+  | 'idle'
+  | 'checking'
+  | 'available'
+  | 'downloading'
+  | 'downloaded'
+  | 'up-to-date'
+  | 'error';
+
+interface AppUpdaterState {
+  supported: boolean;
+  phase: UpdaterPhase;
+  currentVersion: string;
+  availableVersion?: string;
+  progress: number;
+  error?: string;
+}
+
+interface AppUpdaterActionResult {
+  success: boolean;
+  state: AppUpdaterState;
+  error?: string;
 }
 
 interface ProxyRequestOptions {

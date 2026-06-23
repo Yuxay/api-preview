@@ -16,6 +16,7 @@
     "preversion": "git diff --quiet HEAD || (echo Please commit/stash changes first && exit 1)"
   },
   "dependencies": {
+    "electron-updater": "^6.8.9",
     "vue": "^3.5.13"
   },
   "devDependencies": {
@@ -38,6 +39,13 @@
     "directories": {
       "output": "release"
     },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "Yuxay",
+        "repo": "api-preview"
+      }
+    ],
     "files": [
       "dist/**",
       "dist-electron/**",

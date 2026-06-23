@@ -94,6 +94,16 @@ const messages: Record<Locale, MessageSchema> = {
       title: '外观设置',
       language: '语言',
     },
+    updater: {
+      check: '检查更新',
+      checking: '检查中',
+      checkingForUpdates: '正在检查新版本...',
+      updateAvailable: '发现新版本 {version}，正在后台下载更新包。',
+      downloading: '正在下载更新包... {progress}%',
+      downloaded: '新版本 {version} 已下载完成，应用即将自动关闭并安装更新。',
+      upToDate: '当前已是最新版本（{version}）。',
+      checkFailed: '检查更新失败：{message}',
+    },
     app: {
       intro:
         '从顶部输入 Swagger / OpenAPI URL，加载后即可浏览 API、调试请求、管理多个来源并查看差异变化。',
@@ -311,6 +321,16 @@ const messages: Record<Locale, MessageSchema> = {
     settings: {
       title: 'Appearance',
       language: 'Language',
+    },
+    updater: {
+      check: 'Check Updates',
+      checking: 'Checking',
+      checkingForUpdates: 'Checking for updates...',
+      updateAvailable: 'Version {version} is available and is downloading in the background.',
+      downloading: 'Downloading update... {progress}%',
+      downloaded: 'Version {version} is ready. The app will close and install the update automatically.',
+      upToDate: 'You are on the latest version ({version}).',
+      checkFailed: 'Update check failed: {message}',
     },
     app: {
       intro:
