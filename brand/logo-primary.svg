@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+  <defs>
+    <linearGradient id="bg-grad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0f172a"/>
+      <stop offset="100%" stop-color="#1e293b"/>
+    </linearGradient>
+    <linearGradient id="accent-grad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#38bdf8"/>
+      <stop offset="100%" stop-color="#0ea5e9"/>
+    </linearGradient>
+    <linearGradient id="accent-dim" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#7dd3fc"/>
+      <stop offset="100%" stop-color="#38bdf8"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background rounded rect -->
+  <rect x="0" y="0" width="512" height="512" rx="96" fill="url(#bg-grad)"/>
+
+  <!-- Abstract "A" monogram — also reads as open book / API brackets -->
+  <!-- Left stroke of A — slanted, book-like page -->
+  <path d="M160 400 L256 80 L256 80" stroke="url(#accent-dim)" stroke-width="32" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  <!-- Right stroke of A — slanted, book-like page -->
+  <path d="M352 400 L256 80 L256 80" stroke="url(#accent-grad)" stroke-width="32" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+
+  <!-- Crossbar of A — API endpoint slash style, floating -->
+  <path d="M200 290 L312 290" stroke="url(#accent-grad)" stroke-width="28" stroke-linecap="round" fill="none"/>
+
+  <!-- Subtle dot accent — API endpoint dot -->
+  <circle cx="256" cy="364" r="12" fill="#38bdf8" opacity="0.8"/>
+
+  <!-- Small accent marks — data flow / API calls -->
+  <circle cx="184" cy="322" r="6" fill="#7dd3fc" opacity="0.5"/>
+  <circle cx="328" cy="234" r="6" fill="#7dd3fc" opacity="0.5"/>
+</svg>
