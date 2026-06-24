@@ -26,7 +26,7 @@ function isRequired(name: string, required?: string[]): boolean {
   return required?.includes(name) ?? false;
 }
 
-function typeLabel(schema: ApiSchema): string {
+function typeLabel(schema: ApiSchema, seen = new WeakSet<ApiSchema>()): string {
   let label = schema.type || 'object';
   if (
     schema.type === 'object' &&
@@ -35,8 +35,11 @@ function typeLabel(schema: ApiSchema): string {
   ) {
     if (schema.additionalProperties === true) {
       label = 'object<string, any>';
+    } else if (seen.has(schema.additionalProperties)) {
+      label = 'object<string, ...>';
     } else {
-      label = `object<string, ${typeLabel(schema.additionalProperties)}>`;
+      seen.add(schema.additionalProperties);
+      label = `object<string, ${typeLabel(schema.additionalProperties, seen)}>`;
     }
   }
   if (schema.format) label += ` (${schema.format})`;

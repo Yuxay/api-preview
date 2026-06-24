@@ -124,15 +124,17 @@ function resolveSchemaRef(
   if (!schema) return schema;
 
   let resolved = { ...schema };
+  // 解析 $ref 后仍需向子节点传递已访问集合，避免循环引用再次展开
+  let activeVisited = visited;
   if (schema.$ref) {
     if (visited.has(schema.$ref)) {
       return resolved;
     }
-    const nextVisited = new Set(visited);
-    nextVisited.add(schema.$ref);
+    activeVisited = new Set(visited);
+    activeVisited.add(schema.$ref);
     const refResult = resolveRef(schema.$ref, spec);
     if (refResult) {
-      resolved = mergeSchemas(resolveSchemaRef(refResult, spec, nextVisited), {
+      resolved = mergeSchemas(resolveSchemaRef(refResult, spec, activeVisited), {
         ...schema,
         $ref: undefined,
       });
@@ -142,7 +144,7 @@ function resolveSchemaRef(
   if (resolved.allOf?.length) {
     resolved = mergeAllOfSchemas(
       resolved.allOf.map((item) =>
-        resolveSchemaRef(item, spec, new Set(visited)),
+        resolveSchemaRef(item, spec, activeVisited),
       ),
       { ...resolved, allOf: undefined },
     );
@@ -151,7 +153,7 @@ function resolveSchemaRef(
   if (resolved.properties) {
     const resolvedProps: Record<string, ApiSchema> = {};
     for (const [k, v] of Object.entries(resolved.properties)) {
-      resolvedProps[k] = resolveSchemaRef(v, spec, new Set(visited));
+      resolvedProps[k] = resolveSchemaRef(v, spec, activeVisited);
     }
     resolved = { ...resolved, properties: resolvedProps };
   }
@@ -164,21 +166,21 @@ function resolveSchemaRef(
       additionalProperties: resolveSchemaRef(
         resolved.additionalProperties,
         spec,
-        new Set(visited),
+        activeVisited,
       ),
     };
   }
   if (resolved.items) {
     resolved = {
       ...resolved,
-      items: resolveSchemaRef(resolved.items, spec, new Set(visited)),
+      items: resolveSchemaRef(resolved.items, spec, activeVisited),
     };
   }
   if (resolved.oneOf) {
     resolved = {
       ...resolved,
       oneOf: resolved.oneOf.map((s) =>
-        resolveSchemaRef(s, spec, new Set(visited)),
+        resolveSchemaRef(s, spec, activeVisited),
       ),
     };
   }
@@ -186,7 +188,7 @@ function resolveSchemaRef(
     resolved = {
       ...resolved,
       anyOf: resolved.anyOf.map((s) =>
-        resolveSchemaRef(s, spec, new Set(visited)),
+        resolveSchemaRef(s, spec, activeVisited),
       ),
     };
   }
