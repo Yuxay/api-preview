@@ -41,6 +41,28 @@ function isLongText(text: string): boolean {
   return text.length > 50;
 }
 
+function paramTypeLabel(p: ApiParameter): string {
+  const schema = p.schema;
+  if (!schema) return 'string';
+  if (schema.$ref) return schema.$ref.split('/').pop() || schema.$ref;
+  if (schema.oneOf?.length) return `oneOf [${schema.oneOf.length}]`;
+  if (schema.anyOf?.length) return `anyOf [${schema.anyOf.length}]`;
+  if (schema.allOf?.length) return `allOf [${schema.allOf.length}]`;
+  if (schema.type === 'array') {
+    if (schema.items) {
+      const itemType = schema.items.$ref
+        ? schema.items.$ref.split('/').pop()
+        : schema.items.type || 'any';
+      return `array<${itemType}>`;
+    }
+    return 'array';
+  }
+  if (schema.type === 'string' && (schema.format === 'binary' || schema.format === 'byte')) {
+    return `file (${schema.format})`;
+  }
+  return [schema.type, schema.format].filter(Boolean).join(' / ') || 'string';
+}
+
 const { t } = useI18n()
 </script>
 
@@ -81,7 +103,7 @@ const { t } = useI18n()
             />
           </td>
           <td class="input-table-cell text-xs font-mono" style="color: var(--ui-text-soft)">
-            {{ p.schema?.type || 'string' }}
+            {{ paramTypeLabel(p) }}
           </td>
           <td class="input-table-cell text-xs" style="color: var(--ui-text-muted)">
             <div

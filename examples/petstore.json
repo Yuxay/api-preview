@@ -41,6 +41,10 @@
     {
       "name": "user",
       "description": "Operations about user"
+    },
+    {
+      "name": "demo",
+      "description": "演示：复合类型、数组与二进制（ApiPreview 类型标签改进展示）"
     }
   ],
   "paths": {
@@ -701,6 +705,81 @@
           },
           "404": {
             "description": "User not found"
+          }
+        }
+      }
+    },
+    "/demo/types": {
+      "get": {
+        "tags": ["demo"],
+        "summary": "演示：复合类型、数组与二进制响应",
+        "description": "用于展示 ApiPreview 的类型标签改进效果 — oneOf、anyOf、allOf、array、binary",
+        "operationId": "demoTypes",
+        "parameters": [
+          {
+            "name": "file",
+            "in": "query",
+            "description": "一个文件上传参数（binary 格式）",
+            "required": false,
+            "schema": { "type": "string", "format": "binary" }
+          },
+          {
+            "name": "tags",
+            "in": "query",
+            "description": "数组类型参数",
+            "required": false,
+            "schema": { "type": "array", "items": { "type": "string" } }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "包含 oneOf / anyOf / allOf / array 的响应",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    { "type": "object", "properties": { "catName": { "type": "string" } } },
+                    { "type": "object", "properties": { "dogName": { "type": "string" } } }
+                  ]
+                }
+              },
+              "application/octet-stream": {
+                "schema": { "type": "string", "format": "binary" }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["demo"],
+        "summary": "演示：anyOf 与 allOf 请求体",
+        "operationId": "demoCompositeBody",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  { "$ref": "#/components/schemas/Pet" },
+                  { "$ref": "#/components/schemas/Order" }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "allOf 组合响应",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    { "$ref": "#/components/schemas/Pet" },
+                    { "type": "object", "properties": { "vendor": { "type": "string" } } }
+                  ]
+                }
+              }
+            }
           }
         }
       }

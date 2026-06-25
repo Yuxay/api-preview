@@ -275,15 +275,24 @@ function stringifyValue(value: unknown): string {
 function paramTypeLabel(param: ApiParameter): string {
   const schema = param.schema;
   if (!schema) return '-';
-  if (schema.oneOf?.length) return 'oneOf';
-  if (schema.anyOf?.length) return 'anyOf';
-  if (schema.allOf?.length) return 'allOf';
-  if (schema.$ref) return schema.$ref.split('/').pop() || schema.$ref;
+  if (schema.$ref) return `$ref → ${schema.$ref.split('/').pop() || schema.$ref}`;
+  if (schema.oneOf?.length) return `oneOf [${schema.oneOf.length}]`;
+  if (schema.anyOf?.length) return `anyOf [${schema.anyOf.length}]`;
+  if (schema.allOf?.length) return `allOf [${schema.allOf.length}]`;
   if (schema.type === 'array') {
-    return `${schema.items?.type || 'any'}[]`;
+    if (schema.items) {
+      const itemType = schema.items.$ref
+        ? schema.items.$ref.split('/').pop()
+        : schema.items.type || 'any';
+      return `array<${itemType}>`;
+    }
+    return 'array';
   }
   if ((schema.type === 'object' || !schema.type) && schema.properties) {
     return 'object';
+  }
+  if (schema.type === 'string' && (schema.format === 'binary' || schema.format === 'byte')) {
+    return `file (${schema.format})`;
   }
   return [schema.type, schema.format].filter(Boolean).join(' / ') || '-';
 }

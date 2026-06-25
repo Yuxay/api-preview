@@ -49,31 +49,64 @@ function isRequired(name: string, required?: string[]): boolean {
 }
 
 function typeLabel(schema: ApiSchema, seen = new WeakSet<ApiSchema>()): string {
+  // $ref takes priority — show referenced type name
+  if (schema.$ref) {
+    const refName = schema.$ref.split('/').pop() || schema.$ref;
+    return `$ref → ${refName}`;
+  }
+
   let label = schema.type || 'object';
+
+  // Map objects: object with additionalProperties but no fixed properties
   if (
     schema.type === 'object' &&
     !schema.properties &&
     schema.additionalProperties
   ) {
     if (schema.additionalProperties === true) {
-      label = 'object<string, any>';
+      label = 'map<string, any>';
     } else if (seen.has(schema.additionalProperties)) {
-      label = 'object<string, ...>';
+      label = 'map<string, ...>';
     } else {
       seen.add(schema.additionalProperties);
-      label = `object<string, ${typeLabel(schema.additionalProperties, seen)}>`;
+      label = `map<string, ${typeLabel(schema.additionalProperties, seen)}>`;
     }
   }
-  if (schema.format) label += ` (${schema.format})`;
-  if (schema.nullable) label += ' | null';
-  if (schema.enum?.length) label += ' (enum)';
-  if (schema.$ref) {
-    const refName = schema.$ref.split('/').pop() || schema.$ref;
-    label = `$ref → ${refName}`;
+
+  // Arrays: show item type inside angle brackets
+  if (schema.type === 'array' && schema.items) {
+    if (seen.has(schema.items)) {
+      label = 'array<...>';
+    } else {
+      seen.add(schema.items);
+      label = `array<${typeLabel(schema.items, seen)}>`;
+    }
+  } else if (schema.type === 'array') {
+    label = 'array';
   }
-  if (schema.oneOf) label = 'oneOf';
-  if (schema.anyOf) label = 'anyOf';
-  if (schema.allOf) label = 'allOf';
+
+  // Format: give binary/byte a friendlier label
+  if (schema.format) {
+    if (schema.format === 'binary') {
+      label = `file (binary)`;
+    } else if (schema.format === 'byte') {
+      label = `file (base64)`;
+    } else {
+      label += ` (${schema.format})`;
+    }
+  }
+
+  // Nullable
+  if (schema.nullable) label += ' | null';
+
+  // Enum
+  if (schema.enum?.length) label += ' (enum)';
+
+  // Composite types — use compact label with variant count
+  if (schema.oneOf) label = `oneOf [${schema.oneOf.length}]`;
+  if (schema.anyOf) label = `anyOf [${schema.anyOf.length}]`;
+  if (schema.allOf) label = `allOf [${schema.allOf.length}]`;
+
   return label;
 }
 
@@ -263,7 +296,7 @@ function isMapSchema(schema: ApiSchema): boolean {
     <!-- 对象：按 properties 生成表格行 -->
     <template v-else>
       <table class="schema-table">
-        <thead v-if="depth === 0 || depth === undefined">
+        <thead>
           <tr class="schema-table-head">
             <th class="schema-cell w-32 text-left font-medium">
               {{ t('schema.field') }}
@@ -296,7 +329,7 @@ function isMapSchema(schema: ApiSchema): boolean {
           >
             <!-- 可展开的对象行 -->
             <template
-              v-if="hasChildren(prop) || prop.$ref || prop.oneOf || prop.anyOf"
+              v-if="hasChildren(prop) || prop.$ref || prop.oneOf || prop.anyOf || prop.allOf"
             >
               <tr
                 class="schema-row schema-row-expand group"
@@ -411,9 +444,7 @@ function isMapSchema(schema: ApiSchema): boolean {
                   >
                   <CopyButton :value="name" :title="t('schema.copyField')" />
                 </td>
-                <td class="schema-cell schema-type">
-                  array&lt;{{ prop.items.type || 'object' }}&gt;
-                </td>
+                <td class="schema-cell schema-type">{{ typeLabel(prop) }}</td>
                 <td class="schema-cell">
                   <span
                     v-if="isRequired(name, schema.required)"
