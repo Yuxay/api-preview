@@ -41,7 +41,11 @@ function isExampleExpanded(key: string): boolean {
 }
 
 function isLongText(text: string): boolean {
-  return text.length > 50;
+  return text.length > 30;
+}
+
+function isLongExample(text: string): boolean {
+  return text.length > 15;
 }
 
 function isRequired(name: string, required?: string[]): boolean {
@@ -258,12 +262,13 @@ function isMapSchema(schema: ApiSchema): boolean {
       <span v-if="exampleText(schema)" class="schema-summary-meta">
         <span
           :class="{
-            'line-clamp-1': !isExampleExpanded('root') && isLongText(exampleText(schema)),
+            'line-clamp-1': !isExampleExpanded('root') && isLongExample(exampleText(schema)),
           }"
           :title="exampleText(schema)"
+          class="break-all"
         >{{ t('common.example') }}: {{ exampleText(schema) }}</span>
         <button
-          v-if="isLongText(exampleText(schema))"
+          v-if="isLongExample(exampleText(schema))"
           type="button"
           class="ml-1 inline-flex cursor-pointer text-[10px] font-medium underline-offset-2 hover:underline"
           style="color: var(--ui-accent)"
@@ -387,12 +392,13 @@ function isMapSchema(schema: ApiSchema): boolean {
                 <td class="schema-cell schema-example">
                   <span
                     :class="{
-                      'line-clamp-1': !isExampleExpanded(name) && isLongText(exampleText(prop)),
+                      'line-clamp-1': !isExampleExpanded(name) && isLongExample(exampleText(prop)),
+                      'break-all': isExampleExpanded(name),
                     }"
                     :title="exampleText(prop)"
                   >{{ exampleText(prop) || '—' }}</span>
                   <button
-                    v-if="isLongText(exampleText(prop))"
+                    v-if="isLongExample(exampleText(prop))"
                     type="button"
                     class="ml-1 inline-flex cursor-pointer text-[10px] font-medium underline-offset-2 hover:underline"
                     style="color: var(--ui-accent)"
@@ -554,12 +560,13 @@ function isMapSchema(schema: ApiSchema): boolean {
               <td class="schema-cell schema-example">
                 <span
                   :class="{
-                    'line-clamp-1': !isExampleExpanded(name) && isLongText(exampleText(prop)),
+                    'line-clamp-1': !isExampleExpanded(name) && isLongExample(exampleText(prop)),
+                    'break-all': isExampleExpanded(name),
                   }"
                   :title="exampleText(prop)"
                 >{{ exampleText(prop) || '—' }}</span>
                 <button
-                  v-if="isLongText(exampleText(prop))"
+                  v-if="isLongExample(exampleText(prop))"
                   type="button"
                   class="ml-1 inline-flex cursor-pointer text-[10px] font-medium underline-offset-2 hover:underline"
                   style="color: var(--ui-accent)"

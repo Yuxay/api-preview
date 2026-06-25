@@ -848,12 +848,12 @@ html.light {
   }
 
   .schema-description {
-    @apply max-w-48 truncate relative;
+    @apply max-w-48 relative break-all;
     color: var(--ui-text-soft);
   }
 
   .schema-example {
-    @apply max-w-32 truncate font-mono;
+    @apply max-w-32 font-mono break-all;
     color: var(--ui-text-soft);
   }
 

@@ -456,7 +456,7 @@ function isDescExpanded(key: string): boolean {
 }
 
 function isLongText(text: string): boolean {
-  return text.length > 50;
+  return text.length > 30;
 }
 </script>
 
