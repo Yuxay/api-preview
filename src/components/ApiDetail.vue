@@ -65,6 +65,7 @@ const sending = ref(false);
 const response = ref<ProxyResponse | null>(null);
 const buildError = ref<RequestBuildError | null>(null);
 const requestMediaType = ref('');
+const expandedDesc = ref<Record<string, boolean>>({});
 const { t } = useI18n();
 
 watch(activeView, (value) => saveUiState('detail-active-view', value));
@@ -436,6 +437,18 @@ function responseMetaClass(code?: string) {
   if (status >= 400) return 'status-badge-danger';
   return 'status-badge-warning';
 }
+
+function toggleDescExpand(key: string) {
+  expandedDesc.value[key] = !expandedDesc.value[key];
+}
+
+function isDescExpanded(key: string): boolean {
+  return !!expandedDesc.value[key];
+}
+
+function isLongText(text: string): boolean {
+  return text.length > 50;
+}
 </script>
 
 <template>
@@ -601,13 +614,26 @@ function responseMetaClass(code?: string) {
                     >{{ paramTypeLabel(param) }}</span
                   >
                   <span
-                    class="flex min-w-0 items-center gap-1 truncate"
+                    class="flex min-w-0 items-center gap-1"
                     style="color: var(--ui-text-muted)"
                     :title="param.description"
                   >
-                    <span class="truncate">{{
+                    <span
+                      :class="{
+                        'line-clamp-1': !isDescExpanded(`${param.in}-${param.name}`) && isLongText(param.description || ''),
+                      }"
+                    >{{
                       param.description || t('common.noDescription')
                     }}</span>
+                    <button
+                      v-if="isLongText(param.description || '')"
+                      type="button"
+                      class="ml-0.5 inline-flex shrink-0 cursor-pointer text-[10px] font-medium underline-offset-2 hover:underline"
+                      style="color: var(--ui-accent)"
+                      @click.stop="toggleDescExpand(`${param.in}-${param.name}`)"
+                    >
+                      {{ isDescExpanded(`${param.in}-${param.name}`) ? t('common.hide') : t('common.show') }}
+                    </button>
                     <CopyButton
                       v-if="param.description"
                       :value="param.description"

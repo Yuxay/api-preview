@@ -226,6 +226,7 @@ const messages: Record<Locale, MessageSchema> = {
       copyDescription: '复制说明',
       copyField: '复制字段名',
       field: '字段',
+      hoverToCopy: '悬停行可复制',
       mapValueType: '映射值类型：',
     },
     errors: {
@@ -472,6 +473,7 @@ const messages: Record<Locale, MessageSchema> = {
       copyDescription: 'Copy description',
       copyField: 'Copy field name',
       field: 'Field',
+      hoverToCopy: 'Hover row to copy',
       mapValueType: 'Map value type:',
     },
     errors: {

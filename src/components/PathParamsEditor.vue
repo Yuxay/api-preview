@@ -1,5 +1,7 @@
 <script setup lang="ts">
+import { ref } from 'vue'
 import type { ApiParameter } from '@/core/types'
+import CopyButton from '@/components/CopyButton.vue'
 import { useI18n } from '@/i18n'
 
 defineProps<{
@@ -10,6 +12,8 @@ defineProps<{
 const emit = defineEmits<{
   'update:modelValue': [value: Record<string, string>]
 }>()
+
+const expandedDesc = ref<Record<string, boolean>>({})
 
 function paramPlaceholder(p: ApiParameter): string {
   const value = p.example ?? p.schema?.example ?? p.schema?.default
@@ -23,6 +27,18 @@ function formatExample(p: ApiParameter): string {
   if (value === null || value === undefined) return ''
   if (typeof value === 'object') return JSON.stringify(value)
   return String(value)
+}
+
+function toggleDescExpand(key: string) {
+  expandedDesc.value[key] = !expandedDesc.value[key]
+}
+
+function isDescExpanded(key: string): boolean {
+  return !!expandedDesc.value[key]
+}
+
+function isLongText(text: string): boolean {
+  return text.length > 50;
 }
 
 const { t } = useI18n()
@@ -48,6 +64,7 @@ const { t } = useI18n()
           <td class="input-table-cell">
             <span class="font-mono text-xs" style="color: var(--ui-text)">{{ p.name }}</span>
             <span v-if="p.required" class="form-required-mark ml-1 text-xs">*</span>
+            <CopyButton :value="p.name" :title="t('common.copyName')" />
           </td>
           <td class="input-table-cell">
             <input
@@ -67,7 +84,23 @@ const { t } = useI18n()
             {{ p.schema?.type || 'string' }}
           </td>
           <td class="input-table-cell text-xs" style="color: var(--ui-text-muted)">
-            <div class="truncate">{{ p.description || t('common.noDescription') }}</div>
+            <div
+              :class="{
+                'line-clamp-1': !isDescExpanded(p.name) && isLongText(p.description || ''),
+              }"
+              :title="p.description || ''"
+            >
+              {{ p.description || t('common.noDescription') }}
+              <button
+                v-if="isLongText(p.description || '')"
+                type="button"
+                class="ml-1 inline-flex cursor-pointer text-[10px] font-medium underline-offset-2 hover:underline"
+                style="color: var(--ui-accent)"
+                @click="toggleDescExpand(p.name)"
+              >
+                {{ isDescExpanded(p.name) ? t('common.hide') : t('common.show') }}
+              </button>
+            </div>
             <div v-if="formatExample(p)" class="mt-1 font-mono text-[11px]" style="color: var(--ui-text-soft)">
               {{ t('common.example') }}: {{ formatExample(p) }}
             </div>

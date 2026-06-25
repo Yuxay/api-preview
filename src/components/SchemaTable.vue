@@ -12,6 +12,8 @@ defineProps<{
 }>();
 
 const expanded = ref<Record<string, boolean>>({});
+const expandedDesc = ref<Record<string, boolean>>({});
+const expandedExample = ref<Record<string, boolean>>({});
 const { t } = useI18n();
 
 function toggle(key: string) {
@@ -20,6 +22,26 @@ function toggle(key: string) {
 
 function isExpanded(key: string): boolean {
   return !!expanded.value[key];
+}
+
+function toggleDescExpand(key: string) {
+  expandedDesc.value[key] = !expandedDesc.value[key];
+}
+
+function isDescExpanded(key: string): boolean {
+  return !!expandedDesc.value[key];
+}
+
+function toggleExampleExpand(key: string) {
+  expandedExample.value[key] = !expandedExample.value[key];
+}
+
+function isExampleExpanded(key: string): boolean {
+  return !!expandedExample.value[key];
+}
+
+function isLongText(text: string): boolean {
+  return text.length > 50;
 }
 
 function isRequired(name: string, required?: string[]): boolean {
@@ -131,9 +153,25 @@ function isMapSchema(schema: ApiSchema): boolean {
     >
       <div class="schema-summary">
         {{ typeLabel(schema) }}
-        <span v-if="schema.description" class="schema-summary-meta">{{
-          schema.description
-        }}</span>
+        <span
+          v-if="schema.description"
+          class="schema-summary-meta"
+          :class="{
+            'line-clamp-1': !isDescExpanded('root') && isLongText(schema.description),
+          }"
+          :title="schema.description"
+        >
+          {{ schema.description }}
+          <button
+            v-if="isLongText(schema.description)"
+            type="button"
+            class="ml-1 inline-flex cursor-pointer text-[10px] font-medium underline-offset-2 hover:underline"
+            style="color: var(--ui-accent)"
+            @click.stop="toggleDescExpand('root')"
+          >
+            {{ isDescExpanded('root') ? t('common.hide') : t('common.show') }}
+          </button>
+        </span>
       </div>
       <div class="schema-array-label">{{ t('schema.arrayItemType') }}</div>
       <SchemaTable
@@ -147,9 +185,25 @@ function isMapSchema(schema: ApiSchema): boolean {
     <div v-else-if="isMapSchema(schema)" class="space-y-2 px-3 py-1">
       <div class="schema-summary">
         {{ typeLabel(schema) }}
-        <span v-if="schema.description" class="schema-summary-meta">{{
-          schema.description
-        }}</span>
+        <span
+          v-if="schema.description"
+          class="schema-summary-meta"
+          :class="{
+            'line-clamp-1': !isDescExpanded('root') && isLongText(schema.description),
+          }"
+          :title="schema.description"
+        >
+          {{ schema.description }}
+          <button
+            v-if="isLongText(schema.description)"
+            type="button"
+            class="ml-1 inline-flex cursor-pointer text-[10px] font-medium underline-offset-2 hover:underline"
+            style="color: var(--ui-accent)"
+            @click.stop="toggleDescExpand('root')"
+          >
+            {{ isDescExpanded('root') ? t('common.hide') : t('common.show') }}
+          </button>
+        </span>
       </div>
       <div v-if="mapValueSchema(schema)" class="schema-array-label">
         {{ t('schema.mapValueType') }}
@@ -168,12 +222,42 @@ function isMapSchema(schema: ApiSchema): boolean {
       class="schema-summary"
     >
       {{ typeLabel(schema) }}
-      <span v-if="exampleText(schema)" class="schema-summary-meta"
-        >{{ t('common.example') }}: {{ exampleText(schema) }}</span
+      <span v-if="exampleText(schema)" class="schema-summary-meta">
+        <span
+          :class="{
+            'line-clamp-1': !isExampleExpanded('root') && isLongText(exampleText(schema)),
+          }"
+          :title="exampleText(schema)"
+        >{{ t('common.example') }}: {{ exampleText(schema) }}</span>
+        <button
+          v-if="isLongText(exampleText(schema))"
+          type="button"
+          class="ml-1 inline-flex cursor-pointer text-[10px] font-medium underline-offset-2 hover:underline"
+          style="color: var(--ui-accent)"
+          @click.stop="toggleExampleExpand('root')"
+        >
+          {{ isExampleExpanded('root') ? t('common.hide') : t('common.show') }}
+        </button>
+      </span>
+      <span
+        v-if="schema.description"
+        class="schema-summary-meta"
+        :class="{
+          'line-clamp-1': !isDescExpanded('root') && isLongText(schema.description),
+        }"
+        :title="schema.description"
       >
-      <span v-if="schema.description" class="schema-summary-meta">{{
-        schema.description
-      }}</span>
+        {{ schema.description }}
+        <button
+          v-if="isLongText(schema.description)"
+          type="button"
+          class="ml-1 inline-flex cursor-pointer text-[10px] font-medium underline-offset-2 hover:underline"
+          style="color: var(--ui-accent)"
+          @click.stop="toggleDescExpand('root')"
+        >
+          {{ isDescExpanded('root') ? t('common.hide') : t('common.show') }}
+        </button>
+      </span>
     </div>
 
     <!-- 对象：按 properties 生成表格行 -->
@@ -192,6 +276,13 @@ function isMapSchema(schema: ApiSchema): boolean {
             </th>
             <th class="schema-cell text-left font-medium">
               {{ t('common.description') }}
+              <span
+                class="ml-1.5 text-[10px] font-normal"
+                style="color: var(--ui-text-muted)"
+                :title="t('schema.hoverToCopy')"
+              >
+                {{ t('schema.hoverToCopy') }}
+              </span>
             </th>
             <th class="schema-cell text-left font-medium">
               {{ t('common.example') }}
@@ -237,9 +328,23 @@ function isMapSchema(schema: ApiSchema): boolean {
                   }}</span>
                 </td>
                 <td class="schema-cell schema-description">
-                  <span class="group-hover:inline hidden">{{
+                  <span
+                    :class="{
+                      'line-clamp-1': !isDescExpanded(name) && isLongText(prop.description || ''),
+                    }"
+                    :title="prop.description || ''"
+                  >{{
                     prop.description || '—'
                   }}</span>
+                  <button
+                    v-if="isLongText(prop.description || '')"
+                    type="button"
+                    class="ml-1 inline-flex cursor-pointer text-[10px] font-medium underline-offset-2 hover:underline"
+                    style="color: var(--ui-accent)"
+                    @click.stop="toggleDescExpand(name)"
+                  >
+                    {{ isDescExpanded(name) ? t('common.hide') : t('common.show') }}
+                  </button>
                   <CopyButton
                     v-if="prop.description"
                     :value="prop.description"
@@ -247,7 +352,21 @@ function isMapSchema(schema: ApiSchema): boolean {
                   />
                 </td>
                 <td class="schema-cell schema-example">
-                  {{ exampleText(prop) || '—' }}
+                  <span
+                    :class="{
+                      'line-clamp-1': !isExampleExpanded(name) && isLongText(exampleText(prop)),
+                    }"
+                    :title="exampleText(prop)"
+                  >{{ exampleText(prop) || '—' }}</span>
+                  <button
+                    v-if="isLongText(exampleText(prop))"
+                    type="button"
+                    class="ml-1 inline-flex cursor-pointer text-[10px] font-medium underline-offset-2 hover:underline"
+                    style="color: var(--ui-accent)"
+                    @click.stop="toggleExampleExpand(name)"
+                  >
+                    {{ isExampleExpanded(name) ? t('common.hide') : t('common.show') }}
+                  </button>
                 </td>
               </tr>
               <!-- 展开子表 -->
@@ -306,7 +425,23 @@ function isMapSchema(schema: ApiSchema): boolean {
                   }}</span>
                 </td>
                 <td class="schema-cell schema-description">
-                  {{ prop.description || '—' }}
+                  <span
+                    :class="{
+                      'line-clamp-1': !isDescExpanded(name) && isLongText(prop.description || ''),
+                    }"
+                    :title="prop.description || ''"
+                  >{{
+                    prop.description || '—'
+                  }}</span>
+                  <button
+                    v-if="isLongText(prop.description || '')"
+                    type="button"
+                    class="ml-1 inline-flex cursor-pointer text-[10px] font-medium underline-offset-2 hover:underline"
+                    style="color: var(--ui-accent)"
+                    @click.stop="toggleDescExpand(name)"
+                  >
+                    {{ isDescExpanded(name) ? t('common.hide') : t('common.show') }}
+                  </button>
                   <CopyButton
                     v-if="prop.description"
                     :value="prop.description"
@@ -362,7 +497,23 @@ function isMapSchema(schema: ApiSchema): boolean {
                 }}</span>
               </td>
               <td class="schema-cell schema-description">
-                {{ prop.description || '—' }}
+                <span
+                  :class="{
+                    'line-clamp-1': !isDescExpanded(name) && isLongText(prop.description || ''),
+                  }"
+                  :title="prop.description || ''"
+                >{{
+                  prop.description || '—'
+                }}</span>
+                <button
+                  v-if="isLongText(prop.description || '')"
+                  type="button"
+                  class="ml-1 inline-flex cursor-pointer text-[10px] font-medium underline-offset-2 hover:underline"
+                  style="color: var(--ui-accent)"
+                  @click.stop="toggleDescExpand(name)"
+                >
+                  {{ isDescExpanded(name) ? t('common.hide') : t('common.show') }}
+                </button>
                 <CopyButton
                   v-if="prop.description"
                   :value="prop.description"
@@ -370,7 +521,21 @@ function isMapSchema(schema: ApiSchema): boolean {
                 />
               </td>
               <td class="schema-cell schema-example">
-                {{ exampleText(prop) || '—' }}
+                <span
+                  :class="{
+                    'line-clamp-1': !isExampleExpanded(name) && isLongText(exampleText(prop)),
+                  }"
+                  :title="exampleText(prop)"
+                >{{ exampleText(prop) || '—' }}</span>
+                <button
+                  v-if="isLongText(exampleText(prop))"
+                  type="button"
+                  class="ml-1 inline-flex cursor-pointer text-[10px] font-medium underline-offset-2 hover:underline"
+                  style="color: var(--ui-accent)"
+                  @click.stop="toggleExampleExpand(name)"
+                >
+                  {{ isExampleExpanded(name) ? t('common.hide') : t('common.show') }}
+                </button>
               </td>
             </tr>
           </template>
