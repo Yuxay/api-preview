@@ -4,11 +4,204 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>ApiPreview</title>
+    <!-- Favicon: vector SVG for modern browsers -->
+    <link rel="icon" type="image/svg+xml" href="/brand/logo-mark-minimal.svg" />
+    <!-- Favicon fallback: 32x32 PNG for legacy browsers (generated at build time) -->
+    <link rel="icon" type="image/png" sizes="32x32" href="/brand/logo-mark-minimal.png" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+    <!-- ── Splash Screen Styles (inline for zero-latency rendering) ── -->
+    <style>
+      /* ---- Root container ---- */
+      #splash {
+        position: fixed;
+        inset: 0;
+        z-index: 10000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background-color: #020617;
+        overflow: hidden;
+        /* exit transition — triggered by .splash-exit from main.ts */
+        transition: opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        will-change: opacity;
+      }
+      #splash.splash-exit {
+        opacity: 0;
+        pointer-events: none;
+      }
+
+      /* ---- Ambient background layer ---- */
+      .splash-bg {
+        position: absolute;
+        inset: 0;
+        /* Electric blue glow at center */
+        background:
+          radial-gradient(ellipse 60% 50% at 50% 45%, rgba(56, 189, 248, 0.06) 0%, transparent 70%),
+          /* Subtle dot grid */
+          radial-gradient(circle, rgba(148, 163, 184, 0.045) 0.5px, transparent 0.5px);
+        background-size: 100% 100%, 22px 22px;
+        background-position: center center, 0 0;
+      }
+
+      /* ---- Content column ---- */
+      .splash-content {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 18px;
+      }
+
+      /* ---- Staggered reveal for text elements ---- */
+      .splash-stage {
+        opacity: 0;
+        animation: splash-reveal 0.55s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        animation-delay: var(--splash-delay, 0s);
+      }
+
+      @keyframes splash-reveal {
+        from {
+          opacity: 0;
+          transform: translateY(6px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      /* ---- App logo mark (immediately visible) ---- */
+      .splash-logo-wrap {
+        margin-bottom: 8px;
+        animation: splash-bloom 0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      }
+
+      @keyframes splash-bloom {
+        from {
+          opacity: 0.7;
+          transform: scale(0.92);
+        }
+        to {
+          opacity: 1;
+          transform: scale(1);
+        }
+      }
+      .splash-logo {
+        display: block;
+        animation: splash-logo-pulse 3s ease-in-out infinite;
+        filter: drop-shadow(0 0 12px rgba(56, 189, 248, 0.3));
+      }
+
+      @keyframes splash-logo-pulse {
+        0%, 100% {
+          filter: drop-shadow(0 0 12px rgba(56, 189, 248, 0.3));
+          transform: scale(1);
+        }
+        50% {
+          filter: drop-shadow(0 0 22px rgba(56, 189, 248, 0.5));
+          transform: scale(1.03);
+        }
+      }
+
+      /* ---- Title ---- */
+      .splash-title {
+        margin: 0;
+        font-family: 'JetBrains Mono', 'Cascadia Code', 'Fira Code', 'Courier New', monospace;
+        font-size: 22px;
+        font-weight: 500;
+        letter-spacing: 0.28em;
+        color: #e2e8f0;
+        text-transform: uppercase;
+        text-shadow: 0 0 28px rgba(56, 189, 248, 0.12);
+      }
+
+      /* ---- Version ---- */
+      .splash-version {
+        font-family: 'JetBrains Mono', 'Cascadia Code', 'Fira Code', 'Courier New', monospace;
+        font-size: 11px;
+        font-weight: 400;
+        letter-spacing: 0.12em;
+        color: #64748b;
+      }
+
+      /* ---- Status diamonds ---- */
+      .splash-diamonds {
+        display: flex;
+        gap: 10px;
+        margin-top: 6px;
+      }
+      .splash-diamond {
+        display: block;
+        width: 6px;
+        height: 6px;
+        background: #38bdf8;
+        transform: rotate(45deg);
+        opacity: 0.25;
+        animation: splash-diamond-pulse 1.4s ease-in-out infinite;
+      }
+      .splash-diamond:nth-child(2) {
+        animation-delay: 0.18s;
+      }
+      .splash-diamond:nth-child(3) {
+        animation-delay: 0.36s;
+      }
+
+      @keyframes splash-diamond-pulse {
+        0%, 100% {
+          opacity: 0.18;
+          transform: rotate(45deg) scale(0.75);
+        }
+        50% {
+          opacity: 1;
+          transform: rotate(45deg) scale(1.15);
+        }
+      }
+    </style>
   </head>
   <body class="bg-dark-950 text-dark-100">
+    <!-- ──────────────────────────────────────────────
+         Splash Screen — Precision Instrument Boot
+         Renders instantly with inline styles; removed
+         by main.ts once the Vue app mounts.
+         ────────────────────────────────────────────── -->
+    <div id="splash">
+      <div class="splash-bg"></div>
+      <div class="splash-content">
+        <!-- App logo mark (visible from frame 1, matches favicon) -->
+        <div class="splash-logo-wrap">
+          <svg class="splash-logo" viewBox="0 0 32 32" width="130" height="130" aria-hidden="true">
+            <rect x="0" y="0" width="32" height="32" rx="6" fill="#0f172a"/>
+            <path d="M10 26 L16 6 L16 6" stroke="#7dd3fc" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+            <path d="M22 26 L16 6 L16 6" stroke="#38bdf8" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+            <path d="M12.5 19 L19.5 19" stroke="#38bdf8" stroke-width="2" stroke-linecap="round" fill="none"/>
+            <circle cx="16" cy="23.5" r="1.2" fill="#38bdf8"/>
+          </svg>
+        </div>
+
+        <!-- App title -->
+        <div class="splash-stage" style="--splash-delay: 0.12s">
+          <h1 class="splash-title">API&nbsp;PREVIEW</h1>
+        </div>
+
+        <!-- Version tag -->
+        <div class="splash-stage" style="--splash-delay: 0.24s">
+          <span class="splash-version">v1.0.4</span>
+        </div>
+
+        <!-- Status diamonds -->
+        <div class="splash-stage" style="--splash-delay: 0.36s">
+          <div class="splash-diamonds">
+            <span class="splash-diamond"></span>
+            <span class="splash-diamond"></span>
+            <span class="splash-diamond"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div id="app"></div>
     <script type="module" src="/src/main.ts"></script>
   </body>
