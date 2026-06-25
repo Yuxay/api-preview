@@ -1,6 +1,6 @@
 {
   "name": "api-preview",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "ApiPreview — 轻量级 Swagger/OpenAPI 桌面阅读器 + 轻调试工具",
   "type": "module",
   "main": "dist-electron/main.js",
@@ -47,6 +47,7 @@
       }
     ],
     "files": [
+      "brand/**",
       "dist/**",
       "dist-electron/**",
       "package.json"
@@ -55,11 +56,13 @@
       "target": [
         "nsis"
       ],
-      "artifactName": "${productName}-${version}-Setup.${ext}"
+      "artifactName": "${productName}-${version}-Setup.${ext}",
+      "icon": "build/icon.ico"
     },
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true
-    }
+    },
+    "icon": "build/icon.ico"
   }
 }
