@@ -61,9 +61,7 @@ enabled = true   # language server tools; servers launch lazily when used
 # disabled_skills = ["review"]   # hide noisy or unwanted skills
 
 [permissions]
-allow = ["Bash(cd . && git remote -v 2>/dev/null; echo \"---\"; git log --oneline -5 2>/dev/null || echo \"no commits\")"]
-
-
+allow = ["Bash(cd . && git remote -v 2>/dev/null; echo \"---\"; git log --oneline -5 2>/dev/null || echo \"no commits\")", "Bash(echo \"=== Client Detection ===\" && echo \"__CFBundleIdentifier=$__CFBundleIdentifier\" && echo \"=== Local Skills ===\" && ls ~/.workbuddy/skills/ 2>/dev/null || echo \"No ~/.workbuddy/skills/\" && echo \"=== Marketplace Cache ===\" && ls ~/.workbuddy/skills-marketplace/skills/ 2>/dev/null || echo \"No marketplace cache\" && echo \"=== CodeBuddy Skills ===\" && ls ~/.codebuddy/skills/ 2>/dev/null || echo \"No ~/.codebuddy/skills/\")", "Bash(curl -s \"https://lightmake.site/api/v1/search?q=ponytail&limit=10\" 2>/dev/null || echo \"SkillHub search failed\")", "Bash(curl -s \"https://xiaping.coze.com/api/skills/search?q=ponytail&limit=10\" 2>/dev/null || echo \"虾评 search failed\")"]
 [sandbox]
 # Confine tool blast radius. File-writers (write_file/edit_file/multi_edit/move_file)
 # may only write under workspace_root (empty = current dir) and allow_write extras.
