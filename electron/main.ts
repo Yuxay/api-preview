@@ -3,10 +3,11 @@ import { createMainWindow } from './window'
 import { registerIpcHandlers } from './ipc/swagger'
 import { registerProxyHandler } from './proxy/request'
 import { registerUpdater } from './updater'
+import { getCurrentAppVersion } from './version'
 
 app.whenReady().then(() => {
   // ponytail: tiny IPC so renderer always has the version
-  ipcMain.handle('app:get-version', () => app.getVersion())
+  ipcMain.handle('app:get-version', () => getCurrentAppVersion())
 
   registerIpcHandlers()
   registerProxyHandler()

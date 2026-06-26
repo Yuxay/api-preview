@@ -1,5 +1,6 @@
 import { BrowserWindow, app, ipcMain } from 'electron'
 import { autoUpdater } from 'electron-updater'
+import { compareAppVersions, getCurrentAppVersion, normalizeAppVersion } from './version'
 
 export type UpdaterPhase =
   | 'idle'
@@ -28,7 +29,7 @@ export interface AppUpdaterActionResult {
 let updaterState: AppUpdaterState = {
   supported: false,
   phase: 'idle',
-  currentVersion: app.getVersion(),
+  currentVersion: getCurrentAppVersion(),
   progress: 0,
 }
 
@@ -59,7 +60,7 @@ function setUpdaterState(patch: Partial<AppUpdaterState>): void {
     ...updaterState,
     ...patch,
     supported: supportsAutoUpdate(),
-    currentVersion: app.getVersion(),
+    currentVersion: getCurrentAppVersion(),
   }
   broadcastUpdaterState()
 }
@@ -85,7 +86,27 @@ async function checkForUpdatesInternal(): Promise<void> {
   if (!supportsAutoUpdate()) return
   if (checkForUpdatesPromise) return checkForUpdatesPromise
 
-  checkForUpdatesPromise = autoUpdater.checkForUpdates().then(() => undefined).finally(() => {
+  checkForUpdatesPromise = (async () => {
+    const result = await autoUpdater.checkForUpdates()
+    const currentVersion = getCurrentAppVersion()
+    const availableVersion = normalizeAppVersion(result?.updateInfo?.version)
+
+    // Guard against malformed metadata or stale releases that are not newer.
+    if (!availableVersion || compareAppVersions(availableVersion, currentVersion) <= 0) {
+      installScheduled = false
+      setUpdaterState({
+        phase: 'up-to-date',
+        availableVersion: undefined,
+        error: undefined,
+        progress: 0,
+      })
+      return
+    }
+
+    if (updaterState.phase === 'available') {
+      await autoUpdater.downloadUpdate()
+    }
+  })().finally(() => {
     checkForUpdatesPromise = null
   })
 
@@ -136,7 +157,7 @@ export function registerUpdater(): void {
 
   if (!supportsAutoUpdate()) return
 
-  autoUpdater.autoDownload = true
+  autoUpdater.autoDownload = false
   autoUpdater.autoInstallOnAppQuit = true
   autoUpdater.autoRunAppAfterInstall = true
   autoUpdater.allowPrerelease = false
