@@ -93,6 +93,7 @@ const messages: Record<Locale, MessageSchema> = {
     settings: {
       title: '外观设置',
       language: '语言',
+      version: '版本 {version}',
     },
     updater: {
       check: '检查更新',
@@ -332,6 +333,7 @@ const messages: Record<Locale, MessageSchema> = {
     settings: {
       title: 'Appearance',
       language: 'Language',
+      version: 'Version {version}',
     },
     updater: {
       check: 'Check Updates',

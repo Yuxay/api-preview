@@ -35,8 +35,10 @@ let updaterState: AppUpdaterState = {
 let checkForUpdatesPromise: Promise<void> | null = null
 let installScheduled = false
 
+// ponytail: allow dev-mode update checks; electron-updater GitHub provider
+// reads publish config from package.json, which is available in dev too.
 function supportsAutoUpdate(): boolean {
-  return app.isPackaged && process.platform === 'win32'
+  return process.platform === 'win32'
 }
 
 function getErrorMessage(error: unknown): string {
@@ -138,6 +140,7 @@ export function registerUpdater(): void {
   autoUpdater.autoInstallOnAppQuit = true
   autoUpdater.autoRunAppAfterInstall = true
   autoUpdater.allowPrerelease = false
+  autoUpdater.forceDevUpdateConfig = true // ponytail: allow check in dev mode
 
   autoUpdater.on('checking-for-update', () => {
     installScheduled = false

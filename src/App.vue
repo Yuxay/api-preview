@@ -256,6 +256,7 @@ function expandApiList() {
         :theme-mode="themeMode"
         :updater-supported="updaterSupported"
         :checking-updates="checkingUpdates"
+        :updater-state="updaterState"
         @add-source="onAddSource"
         @select-source="onSelectSource"
         @remove-source="(id: string) => removeSource(id)"

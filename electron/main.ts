@@ -1,10 +1,13 @@
-import { app } from 'electron'
+import { app, ipcMain } from 'electron'
 import { createMainWindow } from './window'
 import { registerIpcHandlers } from './ipc/swagger'
 import { registerProxyHandler } from './proxy/request'
 import { registerUpdater } from './updater'
 
 app.whenReady().then(() => {
+  // ponytail: tiny IPC so renderer always has the version
+  ipcMain.handle('app:get-version', () => app.getVersion())
+
   registerIpcHandlers()
   registerProxyHandler()
   registerUpdater()

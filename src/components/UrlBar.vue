@@ -27,6 +27,7 @@ const props = defineProps<{
   themeMode: ThemeMode;
   updaterSupported: boolean;
   checkingUpdates: boolean;
+  updaterState: AppUpdaterState | null;
 }>();
 
 const emit = defineEmits<{
@@ -60,6 +61,19 @@ const pendingName = ref('');
 const nameInputEl = ref<HTMLInputElement | null>(null);
 
 const { locale, t } = useI18n();
+
+const appVersion = ref('');
+
+onMounted(async () => {
+  if (window.electronAPI?.getAppVersion) {
+    appVersion.value = await window.electronAPI.getAppVersion();
+  }
+});
+
+const updateDot = computed(() => {
+  const phase = props.updaterState?.phase;
+  return phase === 'available' || phase === 'downloading' || phase === 'downloaded';
+});
 
 const tokenActive = computed(() => !!props.token.trim());
 
@@ -309,6 +323,11 @@ const themeOptions: { mode: ThemeMode; key: string }[] = [
             "
           >
             <AppIcon name="settings" :size="16" />
+            <span
+              v-if="updateDot"
+              class="absolute right-1 top-1 h-1.5 w-1.5 rounded-full"
+              style="background-color: var(--ui-warning)"
+            />
           </button>
 
           <div
@@ -360,6 +379,55 @@ const themeOptions: { mode: ThemeMode; key: string }[] = [
                 />
               </button>
             </div>
+
+            <!-- 版本 & 更新 -->
+            <div
+              class="mt-3 border-t pt-3"
+              style="border-color: var(--ui-border)"
+            >
+              <p
+                class="mb-1 text-xs"
+                style="color: var(--ui-text-soft)"
+              >
+                {{ t('settings.version', { version: props.updaterState?.currentVersion || appVersion || '...' }) }}
+              </p>
+              <button
+                type="button"
+                class="toolbar-button w-full justify-center text-xs"
+                :disabled="props.checkingUpdates || !props.updaterState"
+                @click="showSettings = false; emit('check-updates')"
+              >
+                <AppIcon
+                  :name="props.checkingUpdates ? 'loader' : 'download'"
+                  :size="14"
+                  :class="props.checkingUpdates ? 'animate-spin' : ''"
+                />
+                <span>{{
+                  props.checkingUpdates ? t('updater.checking') : t('updater.check')
+                }}</span>
+              </button>
+              <p
+                v-if="props.updaterState?.phase === 'up-to-date'"
+                class="mt-1 text-xs"
+                style="color: var(--ui-success)"
+              >
+                {{ t('updater.upToDate', { version: props.updaterState.currentVersion }) }}
+              </p>
+              <p
+                v-else-if="props.updaterState?.phase === 'downloaded'"
+                class="mt-1 text-xs"
+                style="color: var(--ui-success)"
+              >
+                {{ t('updater.downloaded', { version: props.updaterState.availableVersion || props.updaterState.currentVersion }) }}
+              </p>
+              <p
+                v-else-if="props.updaterState?.phase === 'error'"
+                class="mt-1 text-xs"
+                style="color: var(--ui-danger)"
+              >
+                {{ props.updaterState.error || t('updater.checkFailed', { message: '' }) }}
+              </p>
+            </div>
           </div>
         </div>
 
@@ -406,27 +474,6 @@ const themeOptions: { mode: ThemeMode; key: string }[] = [
           </div>
         </div>
 
-        <button
-          v-if="props.updaterSupported && sources.length > 0"
-          type="button"
-          class="toolbar-button shrink-0 whitespace-nowrap"
-          :disabled="props.checkingUpdates"
-          :title="
-            props.checkingUpdates ? t('updater.checking') : t('updater.check')
-          "
-          @click="emit('check-updates')"
-        >
-          <AppIcon
-            :name="props.checkingUpdates ? 'loader' : 'download'"
-            :size="16"
-            :class="props.checkingUpdates ? 'animate-spin' : ''"
-          />
-          <span class="hidden sm:inline">
-            {{
-              props.checkingUpdates ? t('updater.checking') : t('updater.check')
-            }}
-          </span>
-        </button>
 
         <!-- 生成 AI 代码上下文 -->
         <button

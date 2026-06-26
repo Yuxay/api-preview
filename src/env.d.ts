@@ -20,6 +20,7 @@ interface ElectronAPI {
     error?: string;
   }>;
   getUpdaterState: () => Promise<AppUpdaterState>;
+  getAppVersion: () => Promise<string>;
   checkForUpdates: () => Promise<AppUpdaterActionResult>;
   quitAndInstallUpdate: () => Promise<AppUpdaterActionResult>;
   onUpdaterStateChanged: (listener: (state: AppUpdaterState) => void) => void;
