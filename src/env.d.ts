@@ -22,6 +22,7 @@ interface ElectronAPI {
   getUpdaterState: () => Promise<AppUpdaterState>;
   getAppVersion: () => Promise<string>;
   checkForUpdates: () => Promise<AppUpdaterActionResult>;
+  downloadUpdate: () => Promise<AppUpdaterActionResult>;
   quitAndInstallUpdate: () => Promise<AppUpdaterActionResult>;
   onUpdaterStateChanged: (listener: (state: AppUpdaterState) => void) => void;
 }
@@ -35,9 +36,12 @@ type UpdaterPhase =
   | 'up-to-date'
   | 'error';
 
+type UpdaterCheckSource = 'auto' | 'manual' | null;
+
 interface AppUpdaterState {
   supported: boolean;
   phase: UpdaterPhase;
+  lastCheckSource: UpdaterCheckSource;
   currentVersion: string;
   availableVersion?: string;
   progress: number;

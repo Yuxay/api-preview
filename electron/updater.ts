@@ -1,6 +1,10 @@
-import { BrowserWindow, app, ipcMain } from 'electron'
-import { autoUpdater } from 'electron-updater'
-import { compareAppVersions, getCurrentAppVersion, normalizeAppVersion } from './version'
+import { BrowserWindow, app, ipcMain } from 'electron';
+import { autoUpdater } from 'electron-updater';
+import {
+  compareAppVersions,
+  getCurrentAppVersion,
+  normalizeAppVersion,
+} from './version';
 
 export type UpdaterPhase =
   | 'idle'
@@ -9,48 +13,52 @@ export type UpdaterPhase =
   | 'downloading'
   | 'downloaded'
   | 'up-to-date'
-  | 'error'
+  | 'error';
+
+export type UpdaterCheckSource = 'auto' | 'manual' | null;
 
 export interface AppUpdaterState {
-  supported: boolean
-  phase: UpdaterPhase
-  currentVersion: string
-  availableVersion?: string
-  progress: number
-  error?: string
+  supported: boolean;
+  phase: UpdaterPhase;
+  lastCheckSource: UpdaterCheckSource;
+  currentVersion: string;
+  availableVersion?: string;
+  progress: number;
+  error?: string;
 }
 
 export interface AppUpdaterActionResult {
-  success: boolean
-  state: AppUpdaterState
-  error?: string
+  success: boolean;
+  state: AppUpdaterState;
+  error?: string;
 }
 
 let updaterState: AppUpdaterState = {
   supported: false,
   phase: 'idle',
+  lastCheckSource: null,
   currentVersion: getCurrentAppVersion(),
   progress: 0,
-}
+};
 
-let checkForUpdatesPromise: Promise<void> | null = null
-let installScheduled = false
+let checkForUpdatesPromise: Promise<void> | null = null;
+let currentUpdateSource: UpdaterCheckSource = null;
 
 // ponytail: allow dev-mode update checks; electron-updater GitHub provider
 // reads publish config from package.json, which is available in dev too.
 function supportsAutoUpdate(): boolean {
-  return process.platform === 'win32'
+  return process.platform === 'win32';
 }
 
 function getErrorMessage(error: unknown): string {
-  if (error instanceof Error) return error.message
-  return String(error)
+  if (error instanceof Error) return error.message;
+  return String(error);
 }
 
 function broadcastUpdaterState(): void {
   for (const win of BrowserWindow.getAllWindows()) {
     if (!win.isDestroyed()) {
-      win.webContents.send('updater:state-changed', updaterState)
+      win.webContents.send('updater:state-changed', updaterState);
     }
   }
 }
@@ -60,118 +68,158 @@ function setUpdaterState(patch: Partial<AppUpdaterState>): void {
     ...updaterState,
     ...patch,
     supported: supportsAutoUpdate(),
+    lastCheckSource:
+      patch.lastCheckSource ??
+      currentUpdateSource ??
+      updaterState.lastCheckSource,
     currentVersion: getCurrentAppVersion(),
-  }
-  broadcastUpdaterState()
+  };
+  broadcastUpdaterState();
 }
 
-function createActionResult(success: boolean, error?: string): AppUpdaterActionResult {
+function createActionResult(
+  success: boolean,
+  error?: string,
+): AppUpdaterActionResult {
   return {
     success,
     state: updaterState,
     error,
-  }
+  };
 }
 
-function scheduleQuitAndInstall(): void {
-  if (installScheduled) return
-  installScheduled = true
+async function checkForUpdatesInternal(
+  source: Exclude<UpdaterCheckSource, null>,
+): Promise<void> {
+  if (!supportsAutoUpdate()) return;
+  if (checkForUpdatesPromise) return checkForUpdatesPromise;
 
-  setTimeout(() => {
-    autoUpdater.quitAndInstall(true, true)
-  }, 1500)
-}
-
-async function checkForUpdatesInternal(): Promise<void> {
-  if (!supportsAutoUpdate()) return
-  if (checkForUpdatesPromise) return checkForUpdatesPromise
-
+  currentUpdateSource = source;
   checkForUpdatesPromise = (async () => {
-    const result = await autoUpdater.checkForUpdates()
-    const currentVersion = getCurrentAppVersion()
-    const availableVersion = normalizeAppVersion(result?.updateInfo?.version)
+    const result = await autoUpdater.checkForUpdates();
+    const currentVersion = getCurrentAppVersion();
+    const availableVersion = normalizeAppVersion(result?.updateInfo?.version);
 
     // Guard against malformed metadata or stale releases that are not newer.
-    if (!availableVersion || compareAppVersions(availableVersion, currentVersion) <= 0) {
-      installScheduled = false
+    if (
+      !availableVersion ||
+      compareAppVersions(availableVersion, currentVersion) <= 0
+    ) {
       setUpdaterState({
         phase: 'up-to-date',
         availableVersion: undefined,
         error: undefined,
         progress: 0,
-      })
-      return
-    }
-
-    if (updaterState.phase === 'available') {
-      await autoUpdater.downloadUpdate()
+      });
+      return;
     }
   })().finally(() => {
-    checkForUpdatesPromise = null
-  })
+    checkForUpdatesPromise = null;
+  });
 
-  return checkForUpdatesPromise
+  return checkForUpdatesPromise;
+}
+
+async function downloadUpdateInternal(): Promise<void> {
+  if (!supportsAutoUpdate()) return;
+  if (updaterState.phase !== 'available') return;
+
+  await autoUpdater.downloadUpdate();
 }
 
 export function registerUpdater(): void {
-  setUpdaterState({})
+  setUpdaterState({});
 
-  ipcMain.handle('updater:get-state', () => updaterState)
+  ipcMain.handle('updater:get-state', () => updaterState);
 
   ipcMain.handle('updater:check', async () => {
     if (!supportsAutoUpdate()) {
-      return createActionResult(false, 'unsupported')
+      return createActionResult(false, 'unsupported');
     }
 
-    if (updaterState.phase === 'checking' || updaterState.phase === 'downloading') {
-      return createActionResult(true)
+    if (
+      updaterState.phase === 'checking' ||
+      updaterState.phase === 'downloading'
+    ) {
+      return createActionResult(true);
     }
 
     if (updaterState.phase === 'downloaded') {
-      return createActionResult(true)
+      return createActionResult(true);
     }
 
     try {
-      await checkForUpdatesInternal()
-      return createActionResult(true)
+      await checkForUpdatesInternal('manual');
+      return createActionResult(true);
     } catch (error) {
-      const message = getErrorMessage(error)
-      installScheduled = false
+      const message = getErrorMessage(error);
       setUpdaterState({
         phase: 'error',
         error: message,
         progress: 0,
-      })
-      return createActionResult(false, message)
+      });
+      return createActionResult(false, message);
     }
-  })
+  });
+
+  ipcMain.handle('updater:download', async () => {
+    if (!supportsAutoUpdate()) {
+      return createActionResult(false, 'unsupported');
+    }
+
+    if (
+      updaterState.phase === 'downloading' ||
+      updaterState.phase === 'downloaded'
+    ) {
+      return createActionResult(true);
+    }
+
+    if (updaterState.phase !== 'available') {
+      return createActionResult(false, 'update-not-available');
+    }
+
+    currentUpdateSource = 'manual';
+    try {
+      await downloadUpdateInternal();
+      return createActionResult(true);
+    } catch (error) {
+      const message = getErrorMessage(error);
+      setUpdaterState({
+        phase: 'error',
+        error: message,
+        progress: 0,
+      });
+      return createActionResult(false, message);
+    }
+  });
 
   ipcMain.handle('updater:quit-and-install', () => {
     if (updaterState.phase !== 'downloaded') {
-      return createActionResult(false, 'update-not-downloaded')
+      return createActionResult(false, 'update-not-downloaded');
     }
 
-    scheduleQuitAndInstall()
-    return createActionResult(true)
-  })
+    setTimeout(() => {
+      autoUpdater.quitAndInstall(true, true);
+    }, 150);
+    return createActionResult(true);
+  });
 
-  if (!supportsAutoUpdate()) return
+  if (!supportsAutoUpdate()) return;
 
-  autoUpdater.autoDownload = false
-  autoUpdater.autoInstallOnAppQuit = true
-  autoUpdater.autoRunAppAfterInstall = true
-  autoUpdater.allowPrerelease = false
-  autoUpdater.forceDevUpdateConfig = true // ponytail: allow check in dev mode
+  autoUpdater.autoDownload = false;
+  autoUpdater.autoInstallOnAppQuit = true;
+  autoUpdater.autoRunAppAfterInstall = true;
+  autoUpdater.allowPrerelease = false;
+  autoUpdater.forceDevUpdateConfig = true; // ponytail: allow check in dev mode
 
   autoUpdater.on('checking-for-update', () => {
-    installScheduled = false
     setUpdaterState({
       phase: 'checking',
       availableVersion: undefined,
       error: undefined,
       progress: 0,
-    })
-  })
+    });
+  });
 
   autoUpdater.on('update-available', (info) => {
     setUpdaterState({
@@ -179,26 +227,25 @@ export function registerUpdater(): void {
       availableVersion: info.version,
       error: undefined,
       progress: 0,
-    })
-  })
+    });
+  });
 
   autoUpdater.on('update-not-available', () => {
-    installScheduled = false
     setUpdaterState({
       phase: 'up-to-date',
       availableVersion: undefined,
       error: undefined,
       progress: 0,
-    })
-  })
+    });
+  });
 
   autoUpdater.on('download-progress', (progress) => {
     setUpdaterState({
       phase: 'downloading',
       progress: Math.max(0, Math.min(100, Math.round(progress.percent))),
       error: undefined,
-    })
-  })
+    });
+  });
 
   autoUpdater.on('update-downloaded', (info) => {
     setUpdaterState({
@@ -206,22 +253,20 @@ export function registerUpdater(): void {
       availableVersion: info.version,
       progress: 100,
       error: undefined,
-    })
-    scheduleQuitAndInstall()
-  })
+    });
+  });
 
   autoUpdater.on('error', (error) => {
-    installScheduled = false
     setUpdaterState({
       phase: 'error',
       error: getErrorMessage(error),
       progress: 0,
-    })
-  })
+    });
+  });
 
   void app.whenReady().then(() => {
     setTimeout(() => {
-      void checkForUpdatesInternal().catch(() => undefined)
-    }, 2500)
-  })
+      void checkForUpdatesInternal('auto').catch(() => undefined);
+    }, 2500);
+  });
 }

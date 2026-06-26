@@ -72,7 +72,9 @@ onMounted(async () => {
 
 const updateDot = computed(() => {
   const phase = props.updaterState?.phase;
-  return phase === 'available' || phase === 'downloading' || phase === 'downloaded';
+  return (
+    phase === 'available' || phase === 'downloading' || phase === 'downloaded'
+  );
 });
 
 const tokenActive = computed(() => !!props.token.trim());
@@ -385,17 +387,26 @@ const themeOptions: { mode: ThemeMode; key: string }[] = [
               class="mt-3 border-t pt-3"
               style="border-color: var(--ui-border)"
             >
-              <p
-                class="mb-1 text-xs"
-                style="color: var(--ui-text-soft)"
-              >
-                {{ t('settings.version', { version: props.updaterState?.currentVersion || appVersion || '...' }) }}
+              <p class="mb-1 text-xs" style="color: var(--ui-text-soft)">
+                {{
+                  t('settings.version', {
+                    version:
+                      props.updaterState?.currentVersion || appVersion || '...',
+                  })
+                }}
               </p>
               <button
                 type="button"
                 class="toolbar-button w-full justify-center text-xs"
-                :disabled="props.checkingUpdates || !props.updaterState"
-                @click="showSettings = false; emit('check-updates')"
+                :disabled="
+                  !props.updaterSupported ||
+                  props.checkingUpdates ||
+                  !props.updaterState
+                "
+                @click="
+                  showSettings = false;
+                  emit('check-updates');
+                "
               >
                 <AppIcon
                   :name="props.checkingUpdates ? 'loader' : 'download'"
@@ -403,29 +414,17 @@ const themeOptions: { mode: ThemeMode; key: string }[] = [
                   :class="props.checkingUpdates ? 'animate-spin' : ''"
                 />
                 <span>{{
-                  props.checkingUpdates ? t('updater.checking') : t('updater.check')
+                  props.checkingUpdates
+                    ? t('updater.checking')
+                    : t('updater.check')
                 }}</span>
               </button>
               <p
-                v-if="props.updaterState?.phase === 'up-to-date'"
+                v-if="!props.updaterSupported"
                 class="mt-1 text-xs"
-                style="color: var(--ui-success)"
+                style="color: var(--ui-text-soft)"
               >
-                {{ t('updater.upToDate', { version: props.updaterState.currentVersion }) }}
-              </p>
-              <p
-                v-else-if="props.updaterState?.phase === 'downloaded'"
-                class="mt-1 text-xs"
-                style="color: var(--ui-success)"
-              >
-                {{ t('updater.downloaded', { version: props.updaterState.availableVersion || props.updaterState.currentVersion }) }}
-              </p>
-              <p
-                v-else-if="props.updaterState?.phase === 'error'"
-                class="mt-1 text-xs"
-                style="color: var(--ui-danger)"
-              >
-                {{ props.updaterState.error || t('updater.checkFailed', { message: '' }) }}
+                {{ t('updater.unsupported') }}
               </p>
             </div>
           </div>
@@ -473,7 +472,6 @@ const themeOptions: { mode: ThemeMode; key: string }[] = [
             />
           </div>
         </div>
-
 
         <!-- 生成 AI 代码上下文 -->
         <button

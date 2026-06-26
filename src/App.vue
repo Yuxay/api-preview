@@ -44,6 +44,8 @@ const apiListCollapsed = ref(getUiState('apilist-collapsed', false));
 const showExport = ref(false);
 const exportInitialSelected = ref<ApiItem[]>([]);
 const updaterState = ref<AppUpdaterState | null>(null);
+const updaterDialogOpen = ref(false);
+const updaterActionPending = ref(false);
 const { t } = useI18n();
 
 const exportApis = computed(() => {
@@ -88,6 +90,29 @@ async function onCheckUpdates() {
   if (!window.electronAPI?.checkForUpdates) return;
   const result = await window.electronAPI.checkForUpdates();
   updaterState.value = result.state;
+}
+
+async function onStartUpdateDownload() {
+  if (!window.electronAPI?.downloadUpdate || updaterActionPending.value) return;
+  updaterActionPending.value = true;
+  try {
+    const result = await window.electronAPI.downloadUpdate();
+    updaterState.value = result.state;
+  } finally {
+    updaterActionPending.value = false;
+  }
+}
+
+async function onInstallUpdate() {
+  if (!window.electronAPI?.quitAndInstallUpdate || updaterActionPending.value)
+    return;
+  updaterActionPending.value = true;
+  try {
+    const result = await window.electronAPI.quitAndInstallUpdate();
+    updaterState.value = result.state;
+  } finally {
+    updaterActionPending.value = false;
+  }
 }
 
 function onSelectSource(id: string) {
@@ -149,48 +174,91 @@ const checkingUpdates = computed(() => {
   return phase === 'checking' || phase === 'downloading';
 });
 
-const updaterBannerVisible = computed(() => {
-  if (!updaterSupported.value || !updaterState.value) return false;
-  return updaterState.value.phase !== 'idle';
-});
+const updaterDialogSessionKey = computed(() => {
+  const state = updaterState.value;
+  if (!state || !state.supported) return '';
 
-const updaterBannerIcon = computed(() => {
-  switch (updaterState.value?.phase) {
-    case 'error':
-      return 'alert-triangle';
-    case 'up-to-date':
-      return 'check-circle';
-    case 'downloaded':
-      return 'download';
-    case 'checking':
+  switch (state.phase) {
     case 'available':
     case 'downloading':
-      return 'loader';
+    case 'downloaded':
+      return `${state.lastCheckSource}:${state.phase}:${state.availableVersion || state.currentVersion}`;
+    case 'up-to-date':
+      return state.lastCheckSource === 'manual'
+        ? `${state.lastCheckSource}:${state.phase}:${state.currentVersion}`
+        : '';
+    case 'error':
+      return state.lastCheckSource === 'manual'
+        ? `${state.lastCheckSource}:${state.phase}:${state.error || ''}`
+        : '';
+    default:
+      return '';
+  }
+});
+
+watch(updaterDialogSessionKey, (nextKey, previousKey) => {
+  if (!nextKey) {
+    updaterDialogOpen.value = false;
+    return;
+  }
+
+  if (nextKey !== previousKey) {
+    updaterDialogOpen.value = true;
+  }
+});
+
+const updaterDialogTitle = computed(() => {
+  switch (updaterState.value?.phase) {
+    case 'available':
+      return t('updater.availableTitle');
+    case 'downloading':
+      return t('updater.downloadingTitle');
+    case 'downloaded':
+      return t('updater.downloadedTitle');
+    case 'up-to-date':
+      return t('updater.latestTitle');
+    case 'error':
+      return t('updater.errorTitle');
+    default:
+      return t('updater.check');
+  }
+});
+
+const updaterDialogIcon = computed(() => {
+  switch (updaterState.value?.phase) {
+    case 'up-to-date':
+      return 'check-circle';
+    case 'error':
+      return 'alert-triangle';
+    case 'available':
+    case 'downloading':
+    case 'downloaded':
+      return 'download';
     default:
       return 'info';
   }
 });
 
-const updaterBannerClass = computed(() => {
+const updaterDialogIconClass = computed(() => {
   switch (updaterState.value?.phase) {
-    case 'error':
-      return 'ui-alert-danger';
     case 'up-to-date':
       return 'ui-alert-success';
+    case 'error':
+      return 'ui-alert-danger';
+    case 'available':
+    case 'downloading':
     case 'downloaded':
-      return 'ui-alert-warning';
+      return 'ui-alert-info';
     default:
       return 'ui-alert-info';
   }
 });
 
-const updaterMessage = computed(() => {
+const updaterDialogMessage = computed(() => {
   const state = updaterState.value;
   if (!state || !state.supported) return '';
 
   switch (state.phase) {
-    case 'checking':
-      return t('updater.checkingForUpdates');
     case 'available':
       return t('updater.updateAvailable', {
         version: state.availableVersion || state.currentVersion,
@@ -204,17 +272,58 @@ const updaterMessage = computed(() => {
         version: state.availableVersion || state.currentVersion,
       });
     case 'up-to-date':
-      return t('updater.upToDate', {
-        version: state.currentVersion,
-      });
+      return state.lastCheckSource === 'manual'
+        ? t('updater.upToDate', {
+            version: state.currentVersion,
+          })
+        : '';
     case 'error':
-      return t('updater.checkFailed', {
-        message: state.error || t('errors.unknownError'),
-      });
+      return state.lastCheckSource === 'manual'
+        ? t('updater.checkFailed', {
+            message: state.error || t('errors.unknownError'),
+          })
+        : '';
     default:
       return '';
   }
 });
+
+const updaterDialogPrimaryLabel = computed(() => {
+  switch (updaterState.value?.phase) {
+    case 'available':
+      return t('updater.updateNow');
+    case 'downloaded':
+      return t('updater.installNow');
+    case 'downloading':
+      return t('updater.background');
+    default:
+      return t('common.confirm');
+  }
+});
+
+const updaterDialogShowSecondary = computed(() => {
+  const phase = updaterState.value?.phase;
+  return phase === 'available' || phase === 'downloaded';
+});
+
+const updaterDialogSecondaryLabel = computed(() => t('updater.remindLater'));
+
+async function onUpdaterDialogPrimaryAction() {
+  switch (updaterState.value?.phase) {
+    case 'available':
+      await onStartUpdateDownload();
+      return;
+    case 'downloaded':
+      await onInstallUpdate();
+      return;
+    default:
+      updaterDialogOpen.value = false;
+  }
+}
+
+function onUpdaterDialogSecondaryAction() {
+  updaterDialogOpen.value = false;
+}
 
 const layoutStyle = computed(() => ({
   gridTemplateColumns: [
@@ -279,6 +388,82 @@ function expandApiList() {
       />
 
       <div
+        v-if="updaterDialogOpen && updaterDialogMessage"
+        class="overlay-backdrop-strong fixed inset-0 z-[70] flex items-start justify-center px-4 pt-24"
+        @click.self="updaterDialogOpen = false"
+      >
+        <div class="popover-surface w-full max-w-md p-5">
+          <div class="flex items-start gap-3">
+            <div
+              class="ui-alert flex h-10 w-10 shrink-0 items-center justify-center rounded-xl px-0 py-0"
+              :class="updaterDialogIconClass"
+            >
+              <AppIcon
+                :name="updaterDialogIcon"
+                :size="18"
+                :class="
+                  updaterState?.phase === 'downloading' ? 'animate-spin' : ''
+                "
+              />
+            </div>
+            <div class="min-w-0 flex-1">
+              <h3 class="text-sm font-semibold" style="color: var(--ui-text)">
+                {{ updaterDialogTitle }}
+              </h3>
+              <p
+                class="mt-1 text-sm leading-6"
+                style="color: var(--ui-text-muted)"
+              >
+                {{ updaterDialogMessage }}
+              </p>
+            </div>
+            <button
+              type="button"
+              class="icon-button icon-button-sm shrink-0"
+              :title="t('common.close')"
+              @click="updaterDialogOpen = false"
+            >
+              <AppIcon name="x" :size="14" />
+            </button>
+          </div>
+
+          <div
+            v-if="updaterState?.phase === 'downloading'"
+            class="mt-4 overflow-hidden rounded-full"
+            style="background-color: var(--ui-btn)"
+          >
+            <div
+              class="h-2 rounded-full"
+              :style="{
+                width: `${updaterState.progress}%`,
+                backgroundColor: 'var(--ui-accent)',
+              }"
+            />
+          </div>
+
+          <div class="mt-5 flex justify-end gap-2">
+            <button
+              v-if="updaterDialogShowSecondary"
+              type="button"
+              class="toolbar-button"
+              :disabled="updaterActionPending"
+              @click="onUpdaterDialogSecondaryAction"
+            >
+              {{ updaterDialogSecondaryLabel }}
+            </button>
+            <button
+              type="button"
+              class="toolbar-button toolbar-button-primary"
+              :disabled="updaterActionPending"
+              @click="onUpdaterDialogPrimaryAction"
+            >
+              {{ updaterDialogPrimaryLabel }}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div
         v-if="error"
         class="ui-alert ui-alert-danger mx-3 mt-2 justify-between"
       >
@@ -293,26 +478,14 @@ function expandApiList() {
         </button>
       </div>
 
-      <div
-        v-if="updaterBannerVisible && updaterMessage"
-        class="ui-alert mx-3 mt-2 items-center"
-        :class="updaterBannerClass"
-      >
-        <AppIcon
-          :name="updaterBannerIcon"
-          :size="16"
-          class="shrink-0"
-          :class="checkingUpdates ? 'animate-spin' : ''"
-        />
-        <span class="min-w-0 flex-1">{{ updaterMessage }}</span>
-      </div>
-
       <div class="flex-1 overflow-hidden px-3 pb-3 pt-2">
         <div
           v-if="sources.length === 0 && !loading"
           class="panel-surface flex h-full items-center justify-center"
         >
-          <div class="empty-state max-w-xl space-y-4 border-0 bg-transparent px-10 py-10">
+          <div
+            class="empty-state max-w-xl space-y-4 border-0 bg-transparent px-10 py-10"
+          >
             <div class="empty-state-icon">
               <AppIcon name="file-text" :size="32" />
             </div>
@@ -345,7 +518,11 @@ function expandApiList() {
             <div
               class="mx-auto h-10 w-10 animate-spin rounded-full border-2"
               style="
-                border-color: color-mix(in srgb, var(--ui-border-strong) 90%, transparent);
+                border-color: color-mix(
+                  in srgb,
+                  var(--ui-border-strong) 90%,
+                  transparent
+                );
                 border-top-color: var(--ui-accent);
               "
             />
