@@ -62,7 +62,7 @@ const nameInputEl = ref<HTMLInputElement | null>(null);
 
 const { locale, t } = useI18n();
 
-const appVersion = ref('');
+const appVersion = ref(__APP_VERSION__);
 
 onMounted(async () => {
   if (window.electronAPI?.getAppVersion) {
@@ -391,7 +391,7 @@ const themeOptions: { mode: ThemeMode; key: string }[] = [
                 {{
                   t('settings.version', {
                     version:
-                      props.updaterState?.currentVersion || appVersion || '...',
+                      props.updaterState?.currentVersion || appVersion,
                   })
                 }}
               </p>
@@ -420,7 +420,7 @@ const themeOptions: { mode: ThemeMode; key: string }[] = [
                 }}</span>
               </button>
               <p
-                v-if="!props.updaterSupported"
+                v-if="props.updaterState && !props.updaterSupported"
                 class="mt-1 text-xs"
                 style="color: var(--ui-text-soft)"
               >
