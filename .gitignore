@@ -22,3 +22,20 @@ Thumbs.db
 .idea/
 .vscode/
 .history/
+.trae/
+
+# Electron-builder release outputs
+release-*/
+
+# Local tool state
+.reasonix/desktop-topic-created-at.json
+.reasonix/desktop-topic-title-sources.json
+.reasonix/desktop-topic-titles.json
+.reasonix/skills/.skills_store_lock.json
+.reasonix/skills/*/
+skills/.skills_store_lock.json
+skills/*/
+
+# Python caches from utility scripts
+**/__pycache__/
+*.pyc
