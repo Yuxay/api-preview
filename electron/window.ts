@@ -11,12 +11,14 @@ declare global {
 }
 
 export function createMainWindow(): BrowserWindow {
+  // App icon: PNG for Electron (converted from SVG at build time by scripts/generate-icons.py)
   const win = new BrowserWindow({
     width: 1400,
     height: 900,
     minWidth: 1000,
     minHeight: 700,
     title: 'ApiPreview',
+    icon: join(__dirname, '../brand/logo-icon-v2.png'),
     backgroundColor: '#020617',
     webPreferences: {
       preload: join(__dirname, 'preload.js'),

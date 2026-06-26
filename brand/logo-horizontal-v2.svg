@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 256" fill="none">
+  <defs>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#38bdf8"/>
+      <stop offset="100%" stop-color="#0ea5e9"/>
+    </linearGradient>
+    <linearGradient id="accent-dim" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#7dd3fc"/>
+      <stop offset="100%" stop-color="#38bdf8"/>
+    </linearGradient>
+    <linearGradient id="text-accent" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#38bdf8"/>
+      <stop offset="100%" stop-color="#0ea5e9"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Icon: scaled "A" monogram -->
+  <g transform="translate(8, 0) scale(0.62)">
+    <path d="M168 400 L256 88" stroke="url(#accent-dim)" stroke-width="30" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+    <path d="M344 400 L256 88" stroke="url(#accent)" stroke-width="30" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+    <path d="M204 300 L308 300" stroke="url(#accent)" stroke-width="26" stroke-linecap="round" fill="none"/>
+    <circle cx="256" cy="370" r="10" fill="#38bdf8" opacity="0.9"/>
+    <circle cx="188" cy="328" r="5" fill="#7dd3fc" opacity="0.45"/>
+    <circle cx="324" cy="240" r="5" fill="#7dd3fc" opacity="0.45"/>
+  </g>
+
+  <!-- Divider line -->
+  <line x1="210" y1="68" x2="210" y2="188" stroke="#334155" stroke-width="2"/>
+
+  <!-- Text: ApiPreview -->
+  <text x="240" y="147" font-family="'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-weight="700" font-size="64" fill="#e2e8f0" letter-spacing="-0.5">
+    <tspan font-weight="800" fill="url(#text-accent)">Api</tspan>Preview
+  </text>
+
+  <!-- Tagline -->
+  <text x="245" y="186" font-family="'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-weight="400" font-size="20" fill="#64748b" letter-spacing="1.5">
+    SWAGGER &amp; OPENAPI READER
+  </text>
+</svg>

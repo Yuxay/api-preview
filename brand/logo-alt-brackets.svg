@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0f172a"/>
+      <stop offset="100%" stop-color="#1e293b"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#38bdf8"/>
+      <stop offset="100%" stop-color="#0ea5e9"/>
+    </linearGradient>
+    <linearGradient id="accent-dim" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#7dd3fc"/>
+      <stop offset="100%" stop-color="#38bdf8"/>
+    </linearGradient>
+  </defs>
+
+  <rect x="0" y="0" width="512" height="512" rx="96" fill="url(#bg)"/>
+
+  <!-- 
+    Alternative concept: { } brackets forming an open book / document.
+    Left brace { is the left page, right brace } is the right page.
+    Together they suggest both API syntax and a book opening.
+  -->
+
+  <!-- Left brace: stylized { -->
+  <path d="M180 120 C140 160, 140 240, 180 280"
+        stroke="url(#accent-dim)" stroke-width="22" stroke-linecap="round" fill="none"/>
+  <path d="M180 280 C160 300, 160 340, 180 370" 
+        stroke="url(#accent-dim)" stroke-width="22" stroke-linecap="round" fill="none"/>
+
+  <!-- Right brace: stylized } -->
+  <path d="M332 120 C372 160, 372 240, 332 280"
+        stroke="url(#accent)" stroke-width="22" stroke-linecap="round" fill="none"/>
+  <path d="M332 280 C352 300, 352 340, 332 370" 
+        stroke="url(#accent)" stroke-width="22" stroke-linecap="round" fill="none"/>
+
+  <!-- Center horizontal: connection / API endpoint slash -->
+  <line x1="210" y1="280" x2="302" y2="280" stroke="#38bdf8" stroke-width="4" stroke-linecap="round"/>
+
+  <!-- Middle dot: the "endpoint" -->
+  <circle cx="256" cy="250" r="8" fill="#38bdf8" opacity="0.8"/>
+
+  <!-- Small decorative node -->
+  <circle cx="256" cy="385" r="4" fill="#7dd3fc" opacity="0.4"/>
+</svg>

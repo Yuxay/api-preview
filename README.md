@@ -1,5 +1,9 @@
 # ApiPreview
 
+<p align="center">
+  <img src="brand/logo-horizontal-v2.svg" alt="ApiPreview" width="600" />
+</p>
+
 轻量级 **Swagger / OpenAPI 桌面阅读器 + 轻调试工具** —— 本地运行、零 CORS、开箱即用。
 
 <p align="center">
