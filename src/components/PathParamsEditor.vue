@@ -106,23 +106,23 @@ const { t } = useI18n()
             {{ paramTypeLabel(p) }}
           </td>
           <td class="input-table-cell text-xs" style="color: var(--ui-text-muted)">
-            <div
-              :class="{
-                'line-clamp-1': !isDescExpanded(p.name) && isLongText(p.description || ''),
-              }"
-              :title="p.description || ''"
-            >
-              {{ p.description || t('common.noDescription') }}
+            <span class="inline-flex items-center gap-1 min-w-0">
+              <span
+                :class="{
+                  'line-clamp-1': !isDescExpanded(p.name) && isLongText(p.description || ''),
+                }"
+                :title="p.description || ''"
+              >{{ p.description || t('common.noDescription') }}</span>
               <button
                 v-if="isLongText(p.description || '')"
                 type="button"
-                class="ml-1 inline-flex cursor-pointer text-[10px] font-medium underline-offset-2 hover:underline"
+                class="inline-flex shrink-0 cursor-pointer text-[10px] font-medium underline-offset-2 hover:underline"
                 style="color: var(--ui-accent)"
                 @click="toggleDescExpand(p.name)"
               >
                 {{ isDescExpanded(p.name) ? t('common.hide') : t('common.show') }}
               </button>
-            </div>
+            </span>
             <div v-if="formatExample(p)" class="mt-1 font-mono text-[11px]" style="color: var(--ui-text-soft)">
               {{ t('common.example') }}: {{ formatExample(p) }}
             </div>
