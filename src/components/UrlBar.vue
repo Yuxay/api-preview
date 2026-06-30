@@ -19,7 +19,7 @@ const props = defineProps<{
   token: string;
   loading: boolean;
   sources: SwaggerSource[];
-  selectedSource: string;
+  selectedSource: string[];
   searchQuery: string;
   hasDiff: boolean;
   showDiff: boolean;
@@ -528,7 +528,7 @@ const themeOptions: { mode: ThemeMode; key: string }[] = [
         <button
           type="button"
           class="badge-soft shrink-0 transition"
-          :class="selectedSource === '__ALL__' ? 'meta-badge-active' : ''"
+          :class="selectedSource.length === 0 ? 'meta-badge-active' : ''"
           @click="emit('select-source', '__ALL__')"
         >
           {{ t('common.all') }}
@@ -542,7 +542,7 @@ const themeOptions: { mode: ThemeMode; key: string }[] = [
           :key="source.id"
           class="badge-soft group shrink-0 transition"
           :class="
-            selectedSource === source.id
+            selectedSource.includes(source.id)
               ? [
                   getSourceColor(index).bg,
                   getSourceColor(index).border,

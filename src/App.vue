@@ -49,9 +49,9 @@ const updaterActionPending = ref(false);
 const { t } = useI18n();
 
 const exportApis = computed(() => {
-  if (!selectedSource.value || selectedSource.value === '__ALL__')
+  if (selectedSource.value.length === 0)
     return apis.value;
-  return apis.value.filter((api) => api.sourceId === selectedSource.value);
+  return apis.value.filter((api) => selectedSource.value.includes(api.sourceId || ''));
 });
 
 function openExport(initialSelected: ApiItem[] = []) {
@@ -116,7 +116,16 @@ async function onInstallUpdate() {
 }
 
 function onSelectSource(id: string) {
-  selectedSource.value = id;
+  if (id === '__ALL__') {
+    selectedSource.value = [];
+  } else {
+    const idx = selectedSource.value.indexOf(id);
+    if (idx >= 0) {
+      selectedSource.value = selectedSource.value.filter((s) => s !== id);
+    } else {
+      selectedSource.value = [...selectedSource.value, id];
+    }
+  }
   selectedApi.value = null;
   selectedTag.value = '';
 }
@@ -132,16 +141,16 @@ const currentServers = computed(() => {
 });
 
 const totalApiCount = computed(() => {
-  if (!selectedSource.value || selectedSource.value === '__ALL__')
+  if (selectedSource.value.length === 0)
     return apis.value.length;
-  return apis.value.filter((a) => a.sourceId === selectedSource.value).length;
+  return apis.value.filter((a) => selectedSource.value.includes(a.sourceId || '')).length;
 });
 
 const tagCounts = computed<Record<string, number>>(() => {
   const items =
-    !selectedSource.value || selectedSource.value === '__ALL__'
+    selectedSource.value.length === 0
       ? apis.value
-      : apis.value.filter((api) => api.sourceId === selectedSource.value);
+      : apis.value.filter((api) => selectedSource.value.includes(api.sourceId || ''));
 
   return items.reduce<Record<string, number>>((acc, api) => {
     acc[api.tag] = (acc[api.tag] || 0) + 1;

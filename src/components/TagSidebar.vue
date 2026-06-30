@@ -9,7 +9,7 @@ import { useI18n } from '@/i18n';
 
 const props = defineProps<{
   sources: SwaggerSource[];
-  selectedSource: string;
+  selectedSource: string[];
   tags: string[];
   selectedTag: string;
   apiCount: number;
@@ -123,7 +123,7 @@ function onDrop(targetId: string) {
           <button
             type="button"
             class="sidebar-item"
-            :class="selectedSource === '__ALL__' ? 'sidebar-item-active' : ''"
+            :class="selectedSource.length === 0 ? 'sidebar-item-active' : ''"
             @click="emit('select-source', '__ALL__')"
           >
             <span class="h-2 w-2 rounded-full bg-slate-500" />
@@ -140,7 +140,7 @@ function onDrop(targetId: string) {
             :key="source.id"
             class="group cursor-pointer rounded-lg border transition"
             :class="
-              selectedSource === source.id
+              selectedSource.includes(source.id)
                 ? [
                     getSourceColor(index).bg,
                     getSourceColor(index).border,

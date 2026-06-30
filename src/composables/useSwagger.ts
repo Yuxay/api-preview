@@ -23,7 +23,7 @@ export interface UseSwaggerReturn {
   loading: Ref<boolean>
   error: Ref<string>
   sources: Ref<SwaggerSource[]>
-  selectedSource: Ref<string>
+  selectedSource: Ref<string[]>
   apis: Ref<ApiItem[]>
   tagGroups: Ref<Map<string, ApiItem[]>>
   tags: ComputedRef<string[]>
@@ -57,7 +57,7 @@ export function useSwagger(): UseSwaggerReturn {
   const loading = ref(false)
   const error = ref('')
   const sources = ref<SwaggerSource[]>([])
-  const selectedSource = ref('__ALL__')
+  const selectedSource = ref<string[]>([])
   const apis = ref<ApiItem[]>([])
   const tagGroups = ref<Map<string, ApiItem[]>>(new Map())
   const selectedTag = ref('')
@@ -80,10 +80,10 @@ export function useSwagger(): UseSwaggerReturn {
 
   // 当前 source 过滤后的 API（用于 tag 分组）
   const sourceFilteredApis = computed<ApiItem[]>(() => {
-    if (!selectedSource.value || selectedSource.value === '__ALL__') {
+    if (selectedSource.value.length === 0) {
       return apis.value
     }
-    return apis.value.filter((a) => a.sourceId === selectedSource.value)
+    return apis.value.filter((a) => selectedSource.value.includes(a.sourceId || ''))
   })
 
   const filteredApis = computed(() => {
@@ -254,7 +254,7 @@ export function useSwagger(): UseSwaggerReturn {
       if (!isActiveLoad(loadContext.id)) return
 
       syncCollections([...sources.value, ...loaded], [...apis.value, ...newApis])
-      selectedSource.value = '__ALL__'
+      selectedSource.value = []
       selectedApi.value = null
       recalcTagGroups()
 
@@ -282,8 +282,8 @@ export function useSwagger(): UseSwaggerReturn {
   function removeSource(id: string) {
     sources.value = sources.value.filter((s) => s.id !== id)
     apis.value = apis.value.filter((a) => a.sourceId !== id)
-    if (selectedSource.value === id) {
-      selectedSource.value = '__ALL__'
+    if (selectedSource.value.includes(id)) {
+      selectedSource.value = selectedSource.value.filter((s) => s !== id)
     }
     persistSourceOrder()
     recalcTagGroups()
@@ -396,6 +396,7 @@ export function useSwagger(): UseSwaggerReturn {
 
   function selectApi(api: ApiItem): void {
     selectedApi.value = api
+    selectedTag.value = api.tag // ponytail: sync tag highlight to selected api's parent
   }
 
   return {
