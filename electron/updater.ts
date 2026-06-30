@@ -42,7 +42,7 @@ let updaterState: AppUpdaterState = {
 };
 
 let checkForUpdatesPromise: Promise<void> | null = null;
-let currentUpdateSource: UpdaterCheckSource = null;
+let activeCheckSource: UpdaterCheckSource = null;
 
 // ponytail: allow dev-mode update checks; electron-updater GitHub provider
 // reads publish config from package.json, which is available in dev too.
@@ -70,7 +70,7 @@ function setUpdaterState(patch: Partial<AppUpdaterState>): void {
     supported: supportsAutoUpdate(),
     lastCheckSource:
       patch.lastCheckSource ??
-      currentUpdateSource ??
+      activeCheckSource ??
       updaterState.lastCheckSource,
     currentVersion: getCurrentAppVersion(),
   };
@@ -92,9 +92,16 @@ async function checkForUpdatesInternal(
   source: Exclude<UpdaterCheckSource, null>,
 ): Promise<void> {
   if (!supportsAutoUpdate()) return;
-  if (checkForUpdatesPromise) return checkForUpdatesPromise;
+  if (checkForUpdatesPromise) {
+    // A check is already in progress. If the new source is 'manual',
+    // upgrade the active source so the result shows the right dialog.
+    if (source === 'manual') {
+      activeCheckSource = 'manual';
+    }
+    return checkForUpdatesPromise;
+  }
 
-  currentUpdateSource = source;
+  activeCheckSource = source;
   checkForUpdatesPromise = (async () => {
     const result = await autoUpdater.checkForUpdates();
     const currentVersion = getCurrentAppVersion();
@@ -138,13 +145,19 @@ export function registerUpdater(): void {
     }
 
     if (
-      updaterState.phase === 'checking' ||
-      updaterState.phase === 'downloading'
+      updaterState.phase === 'checking'
     ) {
+      // Auto-check is in progress — upgrade source to 'manual' so the
+      // result dialog behaves as a user-initiated check.
+      activeCheckSource = 'manual';
+      await checkForUpdatesPromise;
       return createActionResult(true);
     }
 
-    if (updaterState.phase === 'downloaded') {
+    if (
+      updaterState.phase === 'downloading' ||
+      updaterState.phase === 'downloaded'
+    ) {
       return createActionResult(true);
     }
 
@@ -178,7 +191,7 @@ export function registerUpdater(): void {
       return createActionResult(false, 'update-not-available');
     }
 
-    currentUpdateSource = 'manual';
+    activeCheckSource = 'manual';
     try {
       await downloadUpdateInternal();
       return createActionResult(true);

@@ -214,7 +214,7 @@ watch(updaterDialogSessionKey, (nextKey, previousKey) => {
   if (nextKey !== previousKey) {
     updaterDialogOpen.value = true;
   }
-});
+}, { immediate: true });
 
 const updaterDialogTitle = computed(() => {
   switch (updaterState.value?.phase) {
