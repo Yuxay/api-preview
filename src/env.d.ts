@@ -11,6 +11,8 @@ interface ElectronAPI {
   proxyRequest: (options: ProxyRequestOptions) => Promise<ProxyResponse>;
   getStoredUrls: () => Promise<{ name: string; url: string }[]>;
   saveUrl: (entry: { name: string; url: string }) => Promise<void>;
+  getPersistedSources: () => Promise<{ id: string; name: string; url: string }[]>;
+  savePersistedSources: (sources: { id: string; name: string; url: string }[]) => Promise<void>;
   getToken: () => Promise<string>;
   saveToken: (token: string) => Promise<void>;
   getSnapshot: (sourceId: string) => Promise<unknown>;

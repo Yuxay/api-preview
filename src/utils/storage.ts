@@ -1,8 +1,15 @@
 const STORAGE_KEY_URLS = 'olid-recent-urls'
 const STORAGE_KEY_TOKEN = 'olid-token'
+const STORAGE_KEY_SOURCES = 'olid-sources'
 const STORAGE_KEY_UI_PREFIX = 'olid-ui:'
 
 export interface RecentEntry {
+  name: string
+  url: string
+}
+
+export interface PersistedSource {
+  id: string
   name: string
   url: string
 }
@@ -57,6 +64,26 @@ export async function saveToken(token: string): Promise<void> {
     return
   }
   localStorage.setItem(STORAGE_KEY_TOKEN, token)
+}
+
+export async function getPersistedSources(): Promise<PersistedSource[]> {
+  if (isElectron()) {
+    return window.electronAPI.getPersistedSources()
+  }
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY_SOURCES)
+    return raw ? JSON.parse(raw) : []
+  } catch {
+    return []
+  }
+}
+
+export async function savePersistedSources(sources: PersistedSource[]): Promise<void> {
+  if (isElectron()) {
+    await window.electronAPI.savePersistedSources(sources)
+    return
+  }
+  localStorage.setItem(STORAGE_KEY_SOURCES, JSON.stringify(sources))
 }
 
 export function getUiState<T>(key: string, fallback: T): T {

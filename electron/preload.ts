@@ -26,6 +26,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
   saveUrl: (entry: { name: string; url: string }) =>
     ipcRenderer.invoke('storage:save-url', entry),
 
+  getPersistedSources: () =>
+    ipcRenderer.invoke('storage:get-sources'),
+
+  savePersistedSources: (sources: { id: string; name: string; url: string }[]) =>
+    ipcRenderer.invoke('storage:save-sources', sources),
+
   getToken: () => ipcRenderer.invoke('storage:get-token'),
 
   saveToken: (token: string) => ipcRenderer.invoke('storage:save-token', token),

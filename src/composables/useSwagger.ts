@@ -9,7 +9,7 @@ import {
   type SourceInput,
 } from '@/services/swaggerMultiLoader'
 import { saveSnapshot, getSnapshot, extractSchemas } from '@/services/swaggerSnapshot'
-import { getUiState, saveUiState, saveUrl } from '@/utils/storage'
+import { getUiState, saveUiState, saveUrl, getPersistedSources, savePersistedSources } from '@/utils/storage'
 import { diffApis, type DiffResult } from '@/core/apiDiffEngine'
 import { computeAffectedApis } from '@/core/impactAnalysis'
 import { groupByTag } from '@/core/openapiParser'
@@ -50,6 +50,7 @@ export interface UseSwaggerReturn {
   moveSource: (draggedId: string, targetId: string) => void
   selectTag: (tag: string) => void
   selectApi: (api: ApiItem) => void
+  restoreSources: () => Promise<void>
 }
 
 export function useSwagger(): UseSwaggerReturn {
@@ -121,6 +122,11 @@ export function useSwagger(): UseSwaggerReturn {
     saveUiState(SOURCE_ORDER_STORAGE_KEY, storedSourceOrder.value)
   }
 
+  function persistSourceList(nextSources: SwaggerSource[] = sources.value) {
+    const entries = nextSources.map((s) => ({ id: s.id, name: s.name, url: s.url }))
+    savePersistedSources(entries).catch(() => {})
+  }
+
   function orderSources(nextSources: SwaggerSource[]): SwaggerSource[] {
     const rank = new Map(storedSourceOrder.value.map((id, index) => [id, index]))
     return [...nextSources].sort((a, b) => {
@@ -148,6 +154,7 @@ export function useSwagger(): UseSwaggerReturn {
     sources.value = orderedSources
     apis.value = orderApis(nextApis, orderedSources)
     persistSourceOrder(orderedSources)
+    persistSourceList(orderedSources)
   }
 
   function beginLoad(inputs: SourceInput[]) {
@@ -286,6 +293,7 @@ export function useSwagger(): UseSwaggerReturn {
       selectedSource.value = selectedSource.value.filter((s) => s !== id)
     }
     persistSourceOrder()
+    persistSourceList()
     recalcTagGroups()
   }
 
@@ -315,6 +323,7 @@ export function useSwagger(): UseSwaggerReturn {
 
     // 同步：持久化「最近使用」记录的名称（按 url upsert）
     await saveUrl({ name, url: src.url })
+    persistSourceList()
   }
 
   async function reloadAll(): Promise<void> {
@@ -374,6 +383,50 @@ export function useSwagger(): UseSwaggerReturn {
     }
   }
 
+  async function restoreSources(): Promise<void> {
+    const persisted = await getPersistedSources()
+    if (persisted.length === 0) return
+
+    loading.value = true
+    error.value = ''
+
+    try {
+      const inputs: SourceInput[] = persisted.map((s) => ({
+        id: s.id,
+        name: s.name,
+        url: s.url,
+      }))
+      const loadContext = beginLoad(inputs)
+
+      const { sources: loaded, allApis: newApis, errors: loadErrors } = await loadSources(inputs, {
+        abortSignal: loadContext.abortSignal,
+        requestIdBySourceId: loadContext.requestIdBySourceId,
+      })
+      if (!isActiveLoad(loadContext.id)) return
+
+      syncCollections(loaded, newApis)
+      recalcTagGroups()
+
+      for (const src of loaded) {
+        if (src.status === 'loaded') {
+          await runDiffForSource(src)
+        }
+      }
+
+      if (loadErrors.length > 0) {
+        error.value = loadErrors.join('; ')
+      }
+    } catch (e: any) {
+      if (e?.name === 'AbortError') return
+      console.error('[useSwagger] Failed to restore sources:', e)
+    } finally {
+      if (activeLoad) {
+        activeLoad = null
+      }
+      loading.value = false
+    }
+  }
+
   function moveSource(draggedId: string, targetId: string): void {
     if (!draggedId || !targetId || draggedId === targetId) return
     const fromIndex = sources.value.findIndex((source) => source.id === draggedId)
@@ -425,5 +478,6 @@ export function useSwagger(): UseSwaggerReturn {
     moveSource,
     selectTag,
     selectApi,
+    restoreSources,
   }
 }

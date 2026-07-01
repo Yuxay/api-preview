@@ -163,6 +163,23 @@ export function registerIpcHandlers(): void {
     await writeJson(tokenFile, { token })
   })
 
+  // ========== 来源列表持久化（重启后自动恢复） ==========
+  const sourcesFile = join(storageDir, 'sources.json')
+
+  interface PersistedSource {
+    id: string
+    name: string
+    url: string
+  }
+
+  ipcMain.handle('storage:get-sources', async () => {
+    return readJson<PersistedSource[]>(sourcesFile, [])
+  })
+
+  ipcMain.handle('storage:save-sources', async (_event, sources: PersistedSource[]) => {
+    await writeJson(sourcesFile, sources)
+  })
+
   // ========== 快照存储（用于 Diff，保留历史版本链） ==========
   const snapshotsDir = join(storageDir, 'snapshots')
 

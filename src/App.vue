@@ -36,6 +36,7 @@ const {
   moveSource,
   selectTag,
   selectApi,
+  restoreSources,
 } = useSwagger();
 
 const globalToken = ref('');
@@ -65,6 +66,7 @@ const { themeMode, setThemeMode } = useTheme();
 
 onMounted(async () => {
   globalToken.value = await getToken();
+  await restoreSources();
   if (window.electronAPI?.getUpdaterState) {
     updaterState.value = await window.electronAPI.getUpdaterState();
     window.electronAPI.onUpdaterStateChanged((state) => {
