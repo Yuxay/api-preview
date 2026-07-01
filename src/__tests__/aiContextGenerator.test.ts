@@ -115,4 +115,73 @@ describe('generateApiContext', () => {
     expect(parsed.count).toBe(1)
     expect(parsed.apis[0].method).toBe('POST')
   })
+
+  it('expands object-type query params with tsType in markdown', () => {
+    const api: ApiItem = {
+      id: 'GET:/items',
+      tag: 'items',
+      method: 'GET',
+      path: '/items',
+      summary: '查询列表',
+      description: '',
+      parameters: [
+        {
+          name: 'filter',
+          in: 'query',
+          required: false,
+          description: '过滤条件',
+          schema: {
+            type: 'object',
+            properties: {
+              name: { type: 'string', description: '名称' },
+              status: { type: 'string', enum: ['active', 'inactive'] },
+            },
+          },
+        },
+        { name: 'page', in: 'query', required: false, description: '页码', schema: { type: 'integer' } },
+      ],
+      responses: [],
+    }
+    const md = generateApiContext([api], 'markdown')
+    // 参数表中应显示 object 类型标签
+    expect(md).toContain('| `filter` | object |')
+    // 应展开 TypeScript 类型定义
+    expect(md).toContain('interface filter')
+    expect(md).toContain('name?: string;')
+    expect(md).toContain('status?: "active" | "inactive";')
+    // 简单参数不应有 tsType 展开
+    expect(md).not.toContain('interface page')
+  })
+
+  it('expands object-type query params with tsType in JSON', () => {
+    const api: ApiItem = {
+      id: 'GET:/items',
+      tag: 'items',
+      method: 'GET',
+      path: '/items',
+      summary: '',
+      description: '',
+      parameters: [
+        {
+          name: 'filter',
+          in: 'query',
+          required: false,
+          description: '',
+          schema: {
+            type: 'object',
+            properties: {
+              name: { type: 'string' },
+            },
+          },
+        },
+      ],
+      responses: [],
+    }
+    const json = generateApiContext([api], 'json')
+    const parsed = JSON.parse(json)
+    const filterParam = parsed.apis[0].parameters.query[0]
+    expect(filterParam.type).toBe('object')
+    expect(filterParam.tsType).toBeDefined()
+    expect(filterParam.tsType).toContain('name')
+  })
 })

@@ -48,6 +48,8 @@ interface ExportParam {
   required: boolean
   description: string
   example?: unknown
+  /** 完整的 TypeScript 类型定义（仅当参数 schema 为 object/array 等复杂类型时存在） */
+  tsType?: string
 }
 
 const MAX_DEPTH = 8
@@ -235,6 +237,20 @@ function pushParamTable(out: string[], title: string, params: ExportParam[]): vo
     )
   }
   out.push('')
+  // 展开复杂参数的 TypeScript 类型定义
+  const complexParams = params.filter((p) => p.tsType)
+  if (complexParams.length > 0) {
+    out.push('**参数类型定义：**')
+    out.push('')
+    for (const p of complexParams) {
+      out.push(`- \`${p.name}\`：`)
+      out.push('')
+      out.push('```ts')
+      out.push(`interface ${safeKey(p.name)} ${p.tsType}`)
+      out.push('```')
+      out.push('')
+    }
+  }
 }
 
 // ========== JSON 生成 ==========
@@ -354,13 +370,25 @@ export function schemaToExample(schema: ApiSchema | undefined, depth = 0): unkno
 function paramsOf(params: ApiParameter[], location: ApiParameter['in']): ExportParam[] {
   return params
     .filter((p) => p.in === location)
-    .map((p) => ({
-      name: p.name,
-      type: schemaTypeLabel(p.schema),
-      required: p.required,
-      description: p.description || '',
-      example: p.example ?? p.schema?.example ?? p.schema?.default,
-    }))
+    .map((p) => {
+      const schema = p.schema
+      const hasComplexSchema =
+        schema &&
+        ((schema.type === 'object' && schema.properties && Object.keys(schema.properties).length > 0) ||
+          (schema.type === 'array' && schema.items) ||
+          schema.oneOf?.length ||
+          schema.anyOf?.length ||
+          schema.allOf?.length ||
+          schema.$ref)
+      return {
+        name: p.name,
+        type: schemaTypeLabel(schema),
+        required: p.required,
+        description: p.description || '',
+        example: p.example ?? schema?.example ?? schema?.default,
+        tsType: hasComplexSchema ? schemaToTsType(schema) : undefined,
+      }
+    })
 }
 
 function schemaTypeLabel(schema?: ApiSchema): string {
