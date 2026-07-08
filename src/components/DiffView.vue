@@ -374,7 +374,7 @@ function diffTypeLabel(type: string) {
                       {{ t('common.before') }}
                     </p>
                     <pre
-                      class="json-editor max-h-52 overflow-auto whitespace-pre-wrap break-all text-xs text-red-100"
+                      class="json-editor max-h-52 overflow-auto whitespace-pre-wrap break-all text-xs" style="color: color-mix(in srgb, var(--ui-text) 78%, var(--ui-danger))"
                       >{{ formatValue(change.oldValue) }}</pre
                     >
                   </div>
@@ -388,7 +388,7 @@ function diffTypeLabel(type: string) {
                       {{ t('common.after') }}
                     </p>
                     <pre
-                      class="json-editor max-h-52 overflow-auto whitespace-pre-wrap break-all text-xs text-emerald-100"
+                      class="json-editor max-h-52 overflow-auto whitespace-pre-wrap break-all text-xs" style="color: color-mix(in srgb, var(--ui-text) 78%, var(--ui-success))"
                       >{{ formatValue(change.newValue) }}</pre
                     >
                   </div>
@@ -461,7 +461,7 @@ function diffTypeLabel(type: string) {
                       {{ t('common.before') }}
                     </p>
                     <pre
-                      class="json-editor max-h-52 overflow-auto whitespace-pre-wrap break-all text-xs text-red-100"
+                      class="json-editor max-h-52 overflow-auto whitespace-pre-wrap break-all text-xs" style="color: color-mix(in srgb, var(--ui-text) 78%, var(--ui-danger))"
                       >{{ formatValue(change.oldValue) }}</pre
                     >
                   </div>
@@ -475,7 +475,7 @@ function diffTypeLabel(type: string) {
                       {{ t('common.after') }}
                     </p>
                     <pre
-                      class="json-editor max-h-52 overflow-auto whitespace-pre-wrap break-all text-xs text-emerald-100"
+                      class="json-editor max-h-52 overflow-auto whitespace-pre-wrap break-all text-xs" style="color: color-mix(in srgb, var(--ui-text) 78%, var(--ui-success))"
                       >{{ formatValue(change.newValue) }}</pre
                     >
                   </div>
