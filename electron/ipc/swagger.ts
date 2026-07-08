@@ -247,6 +247,45 @@ export function registerIpcHandlers(): void {
     return listSnapshotTimestamps(sourceId)
   })
 
+  // ========== 离线缓存存储（成功加载后持久化完整源数据，服务端离线时回退使用） ==========
+  const cacheDir = join(storageDir, 'cache')
+
+  async function ensureCacheDir(): Promise<string> {
+    await ensureDir()
+    try { await access(cacheDir, constants.F_OK) } catch { await mkdir(cacheDir, { recursive: true }) }
+    return cacheDir
+  }
+
+  ipcMain.handle('storage:save-cache', async (_event, sourceId: string, data: unknown) => {
+    await ensureCacheDir()
+    await writeJson(join(cacheDir, `${sourceId}.json`), data)
+  })
+
+  ipcMain.handle('storage:get-cache', async (_event, sourceId: string) => {
+    return readJson<any>(join(cacheDir, `${sourceId}.json`), null)
+  })
+
+  ipcMain.handle('storage:get-all-cache', async () => {
+    const dir = await ensureCacheDir()
+    let files: string[]
+    try {
+      files = await readdir(dir)
+    } catch {
+      return []
+    }
+    const results: any[] = []
+    for (const f of files) {
+      if (!f.endsWith('.json')) continue
+      const data = await readJson<any>(join(dir, f), null)
+      if (data) results.push(data)
+    }
+    return results
+  })
+
+  ipcMain.handle('storage:remove-cache', async (_event, sourceId: string) => {
+    try { await unlink(join(cacheDir, `${sourceId}.json`)) } catch { /* 忽略 */ }
+  })
+
   // ========== 示例项目加载（仅开发/本地使用） ==========
   ipcMain.handle('example:load', async () => {
     try {

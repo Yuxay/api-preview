@@ -18,6 +18,10 @@ interface ElectronAPI {
   getSnapshot: (sourceId: string) => Promise<unknown>;
   saveSnapshot: (sourceId: string, data: unknown) => Promise<void>;
   listSnapshots: (sourceId: string) => Promise<number[]>;
+  saveCachedSource: (sourceId: string, data: unknown) => Promise<void>;
+  getCachedSource: (sourceId: string) => Promise<unknown>;
+  getAllCachedSources: () => Promise<unknown[]>;
+  removeCachedSource: (sourceId: string) => Promise<void>;
   loadExampleSpec: () => Promise<{
     success: boolean;
     data?: unknown;

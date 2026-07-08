@@ -45,6 +45,18 @@ contextBridge.exposeInMainWorld('electronAPI', {
   listSnapshots: (sourceId: string) =>
     ipcRenderer.invoke('storage:list-snapshots', sourceId),
 
+  saveCachedSource: (sourceId: string, data: unknown) =>
+    ipcRenderer.invoke('storage:save-cache', sourceId, data),
+
+  getCachedSource: (sourceId: string) =>
+    ipcRenderer.invoke('storage:get-cache', sourceId),
+
+  getAllCachedSources: () =>
+    ipcRenderer.invoke('storage:get-all-cache'),
+
+  removeCachedSource: (sourceId: string) =>
+    ipcRenderer.invoke('storage:remove-cache', sourceId),
+
   loadExampleSpec: () => ipcRenderer.invoke('example:load'),
 
   getUpdaterState: () => ipcRenderer.invoke('updater:get-state'),

@@ -9,6 +9,7 @@ import {
   type SourceInput,
 } from '@/services/swaggerMultiLoader'
 import { saveSnapshot, getSnapshot, extractSchemas } from '@/services/swaggerSnapshot'
+import { saveCachedSource, getCachedSource, removeCachedSource } from '@/services/swaggerCache'
 import { getUiState, saveUiState, saveUrl, getPersistedSources, savePersistedSources } from '@/utils/storage'
 import { diffApis, type DiffResult } from '@/core/apiDiffEngine'
 import { computeAffectedApis } from '@/core/impactAnalysis'
@@ -188,6 +189,76 @@ export function useSwagger(): UseSwaggerReturn {
     }
   }
 
+  /** 将成功加载的源持久化到离线缓存 */
+  async function persistCache(loaded: SwaggerSource[]): Promise<void> {
+    for (const src of loaded) {
+      if (src.status === 'loaded') {
+        await saveCachedSource({
+          sourceId: src.id,
+          sourceName: src.name,
+          url: src.url,
+          spec: src.spec,
+          apis: src.apis,
+          timestamp: Date.now(),
+        }).catch(() => {})
+      }
+    }
+  }
+
+  /**
+   * 对加载失败的源尝试从离线缓存恢复。
+   * 返回替换后的源列表、API 列表，以及使用了缓存回退的源名列表。
+   */
+  async function applyCacheFallback(
+    loaded: SwaggerSource[],
+  ): Promise<{ sources: SwaggerSource[]; apis: ApiItem[]; fallbackNames: string[] }> {
+    const finalSources: SwaggerSource[] = []
+    const finalApis: ApiItem[] = []
+    const fallbackNames: string[] = []
+
+    for (const src of loaded) {
+      if (src.status === 'loaded') {
+        finalSources.push(src)
+        finalApis.push(...src.apis)
+      } else {
+        const cached = await getCachedSource(src.id)
+        if (cached) {
+          finalSources.push({
+            id: cached.sourceId,
+            name: cached.sourceName,
+            url: cached.url,
+            spec: cached.spec,
+            apis: cached.apis,
+            status: 'loaded',
+          })
+          finalApis.push(...cached.apis)
+          fallbackNames.push(src.name)
+        } else {
+          finalSources.push(src)
+        }
+      }
+    }
+
+    return { sources: finalSources, apis: finalApis, fallbackNames }
+  }
+
+  /** 根据加载错误与缓存回退情况组装提示信息 */
+  function buildLoadNotice(loadErrors: string[], fallbackNames: string[]): string {
+    if (loadErrors.length > 0 && fallbackNames.length > 0) {
+      return translate('cache.partialNotice', {
+        errors: loadErrors.join('; '),
+        names: fallbackNames.join(', '),
+      })
+    }
+    if (fallbackNames.length > 0) {
+      return translate('cache.restoredNotice', { names: fallbackNames.join(', ') })
+    }
+    if (loadErrors.length > 0) {
+      return loadErrors.join('; ')
+    }
+    return ''
+  }
+
   // source 切换时重建搜索索引并更新标签分组
   watch(sourceFilteredApis, () => {
     searchIndex.value = buildSearchIndex(sourceFilteredApis.value)
@@ -251,7 +322,7 @@ export function useSwagger(): UseSwaggerReturn {
       const loadContext = beginLoad([{ id, name: srcName, url: inputUrl }])
 
       // 增量加载：仅拉取新源，与内存中已有源/接口合并（不重拉已存在源）
-      const { sources: loaded, allApis: newApis, errors: loadErrors } = await loadSources(
+      const { sources: loaded, errors: loadErrors } = await loadSources(
         [{ id, name: srcName, url: inputUrl }],
         {
           abortSignal: loadContext.abortSignal,
@@ -260,21 +331,23 @@ export function useSwagger(): UseSwaggerReturn {
       )
       if (!isActiveLoad(loadContext.id)) return
 
-      syncCollections([...sources.value, ...loaded], [...apis.value, ...newApis])
+      // 对加载失败的源尝试离线缓存回退
+      const { sources: effectiveLoaded, apis: effectiveNewApis, fallbackNames } =
+        await applyCacheFallback(loaded)
+
+      syncCollections([...sources.value, ...effectiveLoaded], [...apis.value, ...effectiveNewApis])
       selectedSource.value = []
       selectedApi.value = null
       recalcTagGroups()
 
-      // Diff: 为新加载的源执行对比
-      for (const src of loaded) {
-        if (src.status === 'loaded') {
-          await runDiffForSource(src)
-        }
+      // 持久化离线缓存 & Diff
+      const successSources = effectiveLoaded.filter((s) => s.status === 'loaded')
+      await persistCache(successSources)
+      for (const src of successSources) {
+        await runDiffForSource(src)
       }
 
-      if (loadErrors.length > 0) {
-        error.value = loadErrors.join('; ')
-      }
+      error.value = buildLoadNotice(loadErrors, fallbackNames)
     } catch (e: any) {
       if (e?.name === 'AbortError') return
       error.value = e.message || translate('errors.loadFailed')
@@ -295,6 +368,8 @@ export function useSwagger(): UseSwaggerReturn {
     persistSourceOrder()
     persistSourceList()
     recalcTagGroups()
+    // 清除离线缓存
+    removeCachedSource(id).catch(() => {})
   }
 
   /**
@@ -339,25 +414,27 @@ export function useSwagger(): UseSwaggerReturn {
       }))
       const loadContext = beginLoad(inputs)
 
-      const { sources: loaded, allApis: merged, errors: loadErrors } = await loadSources(inputs, {
+      const { sources: loaded, errors: loadErrors } = await loadSources(inputs, {
         abortSignal: loadContext.abortSignal,
         requestIdBySourceId: loadContext.requestIdBySourceId,
       })
       if (!isActiveLoad(loadContext.id)) return
 
-      syncCollections(loaded, merged)
+      // 对加载失败的源尝试离线缓存回退
+      const { sources: effectiveLoaded, apis: effectiveMerged, fallbackNames } =
+        await applyCacheFallback(loaded)
+
+      syncCollections(effectiveLoaded, effectiveMerged)
       recalcTagGroups()
 
-      // Diff
-      for (const src of loaded) {
-        if (src.status === 'loaded') {
-          await runDiffForSource(src)
-        }
+      // 持久化离线缓存 & Diff
+      const successSources = effectiveLoaded.filter((s) => s.status === 'loaded')
+      await persistCache(successSources)
+      for (const src of successSources) {
+        await runDiffForSource(src)
       }
 
-      if (loadErrors.length > 0) {
-        error.value = loadErrors.join('; ')
-      }
+      error.value = buildLoadNotice(loadErrors, fallbackNames)
     } catch (e: any) {
       if (e?.name === 'AbortError') return
       error.value = e.message || translate('errors.reloadFailed')
@@ -398,24 +475,27 @@ export function useSwagger(): UseSwaggerReturn {
       }))
       const loadContext = beginLoad(inputs)
 
-      const { sources: loaded, allApis: newApis, errors: loadErrors } = await loadSources(inputs, {
+      const { sources: loaded, errors: loadErrors } = await loadSources(inputs, {
         abortSignal: loadContext.abortSignal,
         requestIdBySourceId: loadContext.requestIdBySourceId,
       })
       if (!isActiveLoad(loadContext.id)) return
 
-      syncCollections(loaded, newApis)
+      // 对加载失败的源尝试离线缓存回退
+      const { sources: effectiveLoaded, apis: effectiveNewApis, fallbackNames } =
+        await applyCacheFallback(loaded)
+
+      syncCollections(effectiveLoaded, effectiveNewApis)
       recalcTagGroups()
 
-      for (const src of loaded) {
-        if (src.status === 'loaded') {
-          await runDiffForSource(src)
-        }
+      // 持久化离线缓存 & Diff
+      const successSources = effectiveLoaded.filter((s) => s.status === 'loaded')
+      await persistCache(successSources)
+      for (const src of successSources) {
+        await runDiffForSource(src)
       }
 
-      if (loadErrors.length > 0) {
-        error.value = loadErrors.join('; ')
-      }
+      error.value = buildLoadNotice(loadErrors, fallbackNames)
     } catch (e: any) {
       if (e?.name === 'AbortError') return
       console.error('[useSwagger] Failed to restore sources:', e)

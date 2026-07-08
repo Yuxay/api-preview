@@ -207,6 +207,11 @@ const messages: Record<Locale, MessageSchema> = {
         '路径 {pathCount} · Query {queryCount} · 请求头 {headerCount}',
       documentedResponseCount: '{count} 处变更',
     },
+    cache: {
+      restoredNotice: '以下来源使用了本地缓存（服务端不可达）：{names}',
+      partialNotice:
+        '{errors}；以下来源已使用本地缓存：{names}',
+    },
     diff: {
       added: '新增',
       currentApis: '当前 API 数：{count}',
@@ -461,6 +466,12 @@ const messages: Record<Locale, MessageSchema> = {
       tryRequestSummary:
         'Path {pathCount} · Query {queryCount} · Headers {headerCount}',
       documentedResponseCount: '{count} change(s)',
+    },
+    cache: {
+      restoredNotice:
+        'The following sources were restored from local cache (server unreachable): {names}',
+      partialNotice:
+        '{errors}; the following sources were restored from local cache: {names}',
     },
     diff: {
       added: 'Added',
