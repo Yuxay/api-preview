@@ -1,3 +1,5 @@
+import { isValidSourceId } from '@/core/sourceId'
+
 const STORAGE_KEY_URLS = 'olid-recent-urls'
 const STORAGE_KEY_TOKEN = 'olid-token'
 const STORAGE_KEY_SOURCES = 'olid-sources'
@@ -12,6 +14,17 @@ export interface PersistedSource {
   id: string
   name: string
   url: string
+}
+
+function validPersistedSources(value: unknown): PersistedSource[] {
+  if (!Array.isArray(value)) return []
+  return value.filter((source): source is PersistedSource =>
+    typeof source === 'object' &&
+    source !== null &&
+    isValidSourceId((source as PersistedSource).id) &&
+    typeof (source as PersistedSource).name === 'string' &&
+    typeof (source as PersistedSource).url === 'string'
+  )
 }
 
 function isElectron(): boolean {
@@ -68,11 +81,11 @@ export async function saveToken(token: string): Promise<void> {
 
 export async function getPersistedSources(): Promise<PersistedSource[]> {
   if (isElectron()) {
-    return window.electronAPI.getPersistedSources()
+    return validPersistedSources(await window.electronAPI.getPersistedSources())
   }
   try {
     const raw = localStorage.getItem(STORAGE_KEY_SOURCES)
-    return raw ? JSON.parse(raw) : []
+    return raw ? validPersistedSources(JSON.parse(raw)) : []
   } catch {
     return []
   }

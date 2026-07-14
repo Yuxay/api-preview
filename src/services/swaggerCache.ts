@@ -1,4 +1,5 @@
 import type { ApiItem, OpenApiSpec } from '@/core/types'
+import { isValidSourceId } from '@/core/sourceId'
 
 /**
  * 离线缓存数据结构 —— 成功加载后将完整源数据持久化到本地，
@@ -11,6 +12,30 @@ export interface CachedSource {
   spec: OpenApiSpec
   apis: ApiItem[]
   timestamp: number
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+export function isCachedSource(value: unknown, sourceId?: string): value is CachedSource {
+  if (!isRecord(value) || !isRecord(value.spec) || !isRecord(value.spec.info)) return false
+  if (!isValidSourceId(value.sourceId) || (sourceId && value.sourceId !== sourceId)) return false
+  if (typeof value.sourceName !== 'string' || typeof value.url !== 'string') return false
+  if (typeof value.timestamp !== 'number' || !Number.isFinite(value.timestamp)) return false
+  if (!Array.isArray(value.apis)) return false
+  if (!value.apis.every((api) =>
+    isRecord(api) &&
+    typeof api.id === 'string' &&
+    typeof api.tag === 'string' &&
+    typeof api.method === 'string' &&
+    typeof api.path === 'string' &&
+    Array.isArray(api.parameters) &&
+    Array.isArray(api.responses)
+  )) return false
+  if (typeof value.spec.info.title !== 'string' || typeof value.spec.info.version !== 'string') return false
+  if (!isRecord(value.spec.paths)) return false
+  return typeof value.spec.openapi === 'string' || typeof value.spec.swagger === 'string'
 }
 
 /**
@@ -35,12 +60,14 @@ export async function getCachedSource(
   sourceId: string,
 ): Promise<CachedSource | null> {
   if (window.electronAPI?.getCachedSource) {
-    return (await window.electronAPI.getCachedSource(sourceId)) as CachedSource | null
+    const cached = await window.electronAPI.getCachedSource(sourceId)
+    return isCachedSource(cached, sourceId) ? cached : null
   }
   const raw = localStorage.getItem(`olid-cache-${sourceId}`)
   if (!raw) return null
   try {
-    return JSON.parse(raw) as CachedSource
+    const cached: unknown = JSON.parse(raw)
+    return isCachedSource(cached, sourceId) ? cached : null
   } catch {
     return null
   }
@@ -51,7 +78,8 @@ export async function getCachedSource(
  */
 export async function getAllCachedSources(): Promise<CachedSource[]> {
   if (window.electronAPI?.getAllCachedSources) {
-    return (await window.electronAPI.getAllCachedSources()) as CachedSource[]
+    const cached = await window.electronAPI.getAllCachedSources()
+    return cached.filter((value) => isCachedSource(value))
   }
   // 浏览器 fallback：扫描 localStorage
   const results: CachedSource[] = []
@@ -59,7 +87,8 @@ export async function getAllCachedSources(): Promise<CachedSource[]> {
     const key = localStorage.key(i)
     if (key?.startsWith('olid-cache-')) {
       try {
-        results.push(JSON.parse(localStorage.getItem(key)!) as CachedSource)
+        const cached: unknown = JSON.parse(localStorage.getItem(key)!)
+        if (isCachedSource(cached, key.slice('olid-cache-'.length))) results.push(cached)
       } catch {
         /* 忽略损坏的缓存条目 */
       }

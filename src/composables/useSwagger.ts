@@ -9,7 +9,12 @@ import {
   type SourceInput,
 } from '@/services/swaggerMultiLoader'
 import { saveSnapshot, getSnapshot, extractSchemas } from '@/services/swaggerSnapshot'
-import { saveCachedSource, getCachedSource, removeCachedSource } from '@/services/swaggerCache'
+import {
+  saveCachedSource,
+  getCachedSource,
+  getAllCachedSources,
+  removeCachedSource,
+} from '@/services/swaggerCache'
 import { getUiState, saveUiState, saveUrl, getPersistedSources, savePersistedSources } from '@/utils/storage'
 import { diffApis, type DiffResult } from '@/core/apiDiffEngine'
 import { computeAffectedApis } from '@/core/impactAnalysis'
@@ -44,7 +49,7 @@ export interface UseSwaggerReturn {
 
   // 方法
   addSource: (name: string, url: string) => Promise<void>
-  removeSource: (id: string) => void
+  removeSource: (id: string) => Promise<void>
   renameSource: (id: string, name: string) => Promise<void>
   reloadAll: () => Promise<void>
   cancelLoading: () => Promise<void>
@@ -123,9 +128,9 @@ export function useSwagger(): UseSwaggerReturn {
     saveUiState(SOURCE_ORDER_STORAGE_KEY, storedSourceOrder.value)
   }
 
-  function persistSourceList(nextSources: SwaggerSource[] = sources.value) {
+  async function persistSourceList(nextSources: SwaggerSource[] = sources.value): Promise<void> {
     const entries = nextSources.map((s) => ({ id: s.id, name: s.name, url: s.url }))
-    savePersistedSources(entries).catch(() => {})
+    await savePersistedSources(entries)
   }
 
   function orderSources(nextSources: SwaggerSource[]): SwaggerSource[] {
@@ -155,7 +160,6 @@ export function useSwagger(): UseSwaggerReturn {
     sources.value = orderedSources
     apis.value = orderApis(nextApis, orderedSources)
     persistSourceOrder(orderedSources)
-    persistSourceList(orderedSources)
   }
 
   function beginLoad(inputs: SourceInput[]) {
@@ -200,7 +204,7 @@ export function useSwagger(): UseSwaggerReturn {
           spec: src.spec,
           apis: src.apis,
           timestamp: Date.now(),
-        }).catch(() => {})
+        })
       }
     }
   }
@@ -223,15 +227,20 @@ export function useSwagger(): UseSwaggerReturn {
       } else {
         const cached = await getCachedSource(src.id)
         if (cached) {
+          const cachedApis = cached.apis.map((api) => ({
+            ...api,
+            sourceId: src.id,
+            sourceName: src.name,
+          }))
           finalSources.push({
-            id: cached.sourceId,
-            name: cached.sourceName,
-            url: cached.url,
+            id: src.id,
+            name: src.name,
+            url: src.url,
             spec: cached.spec,
-            apis: cached.apis,
+            apis: cachedApis,
             status: 'cached',
           })
-          finalApis.push(...cached.apis)
+          finalApis.push(...cachedApis)
           fallbackNames.push(src.name)
         } else {
           finalSources.push(src)
@@ -343,6 +352,7 @@ export function useSwagger(): UseSwaggerReturn {
       // 持久化离线缓存 & Diff
       const successSources = effectiveLoaded.filter((s) => s.status === 'loaded')
       await persistCache(successSources)
+      await persistSourceList()
       for (const src of successSources) {
         await runDiffForSource(src)
       }
@@ -359,22 +369,25 @@ export function useSwagger(): UseSwaggerReturn {
     }
   }
 
-  function removeSource(id: string) {
-    sources.value = sources.value.filter((s) => s.id !== id)
-    apis.value = apis.value.filter((a) => a.sourceId !== id)
-    if (selectedSource.value.includes(id)) {
-      selectedSource.value = selectedSource.value.filter((s) => s !== id)
+  async function removeSource(id: string): Promise<void> {
+    try {
+      await removeCachedSource(id)
+      sources.value = sources.value.filter((s) => s.id !== id)
+      apis.value = apis.value.filter((a) => a.sourceId !== id)
+      if (selectedSource.value.includes(id)) {
+        selectedSource.value = selectedSource.value.filter((s) => s !== id)
+      }
+      if (selectedApi.value?.sourceId === id) {
+        selectedApi.value = null
+      }
+      diffResults.value = diffResults.value.filter((diff) => diff.sourceId !== id)
+      if (diffResults.value.length === 0) showDiff.value = false
+      persistSourceOrder()
+      await persistSourceList()
+      recalcTagGroups()
+    } catch (e: any) {
+      error.value = e?.message || translate('errors.unknownError')
     }
-    if (selectedApi.value?.sourceId === id) {
-      selectedApi.value = null
-    }
-    diffResults.value = diffResults.value.filter((diff) => diff.sourceId !== id)
-    if (diffResults.value.length === 0) showDiff.value = false
-    persistSourceOrder()
-    persistSourceList()
-    recalcTagGroups()
-    // 清除离线缓存
-    removeCachedSource(id).catch(() => {})
   }
 
   /**
@@ -402,8 +415,26 @@ export function useSwagger(): UseSwaggerReturn {
     apis.value = [...apis.value]
 
     // 同步：持久化「最近使用」记录的名称（按 url upsert）
-    await saveUrl({ name, url: src.url })
-    persistSourceList()
+    try {
+      await persistSourceList()
+      if (src.status !== 'error') {
+        await saveCachedSource({
+          sourceId: src.id,
+          sourceName: name,
+          url: src.url,
+          spec: src.spec,
+          apis: src.apis,
+          timestamp: Date.now(),
+        })
+      }
+    } catch (e: any) {
+      error.value = e?.message || translate('errors.unknownError')
+    }
+    try {
+      await saveUrl({ name, url: src.url })
+    } catch (e) {
+      console.warn('[useSwagger] Failed to update recent URL:', e)
+    }
   }
 
   async function reloadAll(): Promise<void> {
@@ -435,6 +466,7 @@ export function useSwagger(): UseSwaggerReturn {
       // 持久化离线缓存 & Diff
       const successSources = effectiveLoaded.filter((s) => s.status === 'loaded')
       await persistCache(successSources)
+      await persistSourceList()
       for (const src of successSources) {
         await runDiffForSource(src)
       }
@@ -466,14 +498,22 @@ export function useSwagger(): UseSwaggerReturn {
   }
 
   async function restoreSources(): Promise<void> {
-    const persisted = await getPersistedSources()
-    if (persisted.length === 0) return
-
     loading.value = true
     error.value = ''
 
     try {
-      const inputs: SourceInput[] = persisted.map((s) => ({
+      const persisted = await getPersistedSources()
+      const cached = persisted.length === 0 ? await getAllCachedSources() : []
+      const recoverable = persisted.length > 0
+        ? persisted
+        : cached.map((source) => ({
+            id: source.sourceId,
+            name: source.sourceName,
+            url: source.url,
+          }))
+      if (recoverable.length === 0) return
+
+      const inputs: SourceInput[] = recoverable.map((s) => ({
         id: s.id,
         name: s.name,
         url: s.url,
@@ -496,6 +536,7 @@ export function useSwagger(): UseSwaggerReturn {
       // 持久化离线缓存 & Diff
       const successSources = effectiveLoaded.filter((s) => s.status === 'loaded')
       await persistCache(successSources)
+      await persistSourceList()
       for (const src of successSources) {
         await runDiffForSource(src)
       }
@@ -504,6 +545,7 @@ export function useSwagger(): UseSwaggerReturn {
     } catch (e: any) {
       if (e?.name === 'AbortError') return
       console.error('[useSwagger] Failed to restore sources:', e)
+      error.value = e?.message || translate('errors.loadFailed')
     } finally {
       if (activeLoad) {
         activeLoad = null

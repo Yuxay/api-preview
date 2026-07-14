@@ -1,8 +1,9 @@
 import { ipcMain, app } from 'electron'
-import { readFile, writeFile, mkdir, access, readdir, unlink } from 'fs/promises'
+import { readFile, writeFile, mkdir, access, readdir, unlink, rename } from 'fs/promises'
 import { constants } from 'fs'
 import { join, dirname } from 'path'
 import { fileURLToPath } from 'url'
+import { randomUUID } from 'crypto'
 import { assertValidSourceId } from '../../src/core/sourceId'
 
 /** 每个源最多保留的历史快照份数，超出自动清理最旧 */
@@ -127,11 +128,15 @@ export function registerIpcHandlers(): void {
   }
 
   async function writeJson(file: string, data: unknown): Promise<void> {
+    const temporaryFile = `${file}.${randomUUID()}.tmp`
     try {
       await ensureDir()
-      await writeFile(file, JSON.stringify(data, null, 2), 'utf-8')
+      await writeFile(temporaryFile, JSON.stringify(data, null, 2), 'utf-8')
+      await rename(temporaryFile, file)
     } catch (err) {
+      try { await unlink(temporaryFile) } catch { /* ignore cleanup errors */ }
       console.error('[openapi-light] 写入存储失败:', file, err)
+      throw err
     }
   }
 
@@ -291,7 +296,11 @@ export function registerIpcHandlers(): void {
   })
 
   ipcMain.handle('storage:remove-cache', async (_event, sourceId: string) => {
-    try { await unlink(cacheFile(sourceId)) } catch { /* 忽略 */ }
+    try {
+      await unlink(cacheFile(sourceId))
+    } catch (err) {
+      if ((err as NodeJS.ErrnoException).code !== 'ENOENT') throw err
+    }
   })
 
   // ========== 示例项目加载（仅开发/本地使用） ==========

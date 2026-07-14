@@ -105,7 +105,11 @@ export async function loadSources(
       sources.push(result.value.source);
       allApis.push(...result.value.apis);
       // 保存到最近使用（附带名称）
-      await saveUrl({ name: inputs[i].name, url: inputs[i].url });
+      try {
+        await saveUrl({ name: inputs[i].name, url: inputs[i].url });
+      } catch (error) {
+        console.warn('[swaggerMultiLoader] Failed to save recent URL:', error);
+      }
     } else {
       const err = result.reason?.message || translate('errors.unknownError');
       errors.push(`${inputs[i].name}: ${err}`);
