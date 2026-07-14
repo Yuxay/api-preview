@@ -162,6 +162,12 @@ function diffApiFields(oldApi: ApiItem, newApi: ApiItem): FieldChange[] {
     changes.push({ path: 'description', oldValue: oldApi.description, newValue: newApi.description })
   }
 
+  for (const field of ['security', 'operationId', 'tag'] as const) {
+    if (JSON.stringify(oldApi[field]) !== JSON.stringify(newApi[field])) {
+      changes.push({ path: field, oldValue: oldApi[field], newValue: newApi[field] })
+    }
+  }
+
   return changes
 }
 

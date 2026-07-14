@@ -40,6 +40,8 @@ export interface ApiResponse {
   code?: string;
   description: string;
   content?: Record<string, MediaTypeObject>;
+  /** Swagger 2.0 response schema before parser normalization. */
+  schema?: ApiSchema;
 }
 
 export interface ApiSchema {
@@ -63,7 +65,7 @@ export interface ApiSchema {
 
 /** Swagger/OpenAPI 3.x 原始 JSON 顶层结构（部分） */
 export interface OpenApiSpec {
-  openapi: string;
+  openapi?: string;
   swagger?: string; // 兼容 Swagger 2.0
   info: {
     title: string;
@@ -71,6 +73,11 @@ export interface OpenApiSpec {
     description?: string;
   };
   servers?: { url: string; description?: string }[];
+  host?: string;
+  basePath?: string;
+  schemes?: string[];
+  consumes?: string[];
+  produces?: string[];
   paths: Record<string, PathItem>;
   components?: {
     schemas?: Record<string, ApiSchema>;
@@ -89,7 +96,7 @@ export interface SwaggerSource {
   url: string;
   spec: OpenApiSpec;
   apis: ApiItem[];
-  status: 'loading' | 'loaded' | 'error';
+  status: 'loading' | 'loaded' | 'cached' | 'error';
   error?: string;
 }
 
@@ -112,6 +119,8 @@ export interface OperationObject {
   operationId?: string;
   parameters?: ApiParameter[];
   requestBody?: ApiRequestBody;
+  consumes?: string[];
+  produces?: string[];
   responses: Record<string, ApiResponse>;
   security?: Record<string, string[]>[];
 }

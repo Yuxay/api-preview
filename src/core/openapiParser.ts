@@ -66,12 +66,31 @@ export function parseOpenApiSpec(spec: OpenApiSpec): ApiItem[] {
         }
       }
 
+      const bodyParam = parameters.find(
+        (parameter) => String(parameter.in) === 'body',
+      );
+      const requestParameters = parameters.filter(
+        (parameter) => String(parameter.in) !== 'body',
+      );
       const requestBody = operation.requestBody
         ? {
             ...operation.requestBody,
             content: resolveContentRefs(operation.requestBody.content, spec),
           }
-        : undefined;
+        : bodyParam
+          ? {
+              description: bodyParam.description || '',
+              required: bodyParam.required,
+              content: Object.fromEntries(
+                (operation.consumes || spec.consumes || ['application/json']).map(
+                  (mediaType) => [
+                    mediaType,
+                    { schema: resolveSchemaRef(bodyParam.schema, spec) },
+                  ],
+                ),
+              ),
+            }
+          : undefined;
 
       const responses: ApiResponse[] = Object.entries(
         operation.responses || {},
@@ -80,7 +99,16 @@ export function parseOpenApiSpec(spec: OpenApiSpec): ApiItem[] {
         description: resp.description || '',
         content: resp.content
           ? resolveContentRefs(resp.content, spec)
-          : undefined,
+          : resp.schema
+            ? Object.fromEntries(
+                (operation.produces || spec.produces || ['application/json']).map(
+                  (mediaType) => [
+                    mediaType,
+                    { schema: resolveSchemaRef(resp.schema!, spec) },
+                  ],
+                ),
+              )
+            : undefined,
       }));
 
       const opSecurity = operation.security || globalSecurity;
@@ -93,7 +121,7 @@ export function parseOpenApiSpec(spec: OpenApiSpec): ApiItem[] {
         summary: operation.summary || '',
         description: operation.description || '',
         operationId: operation.operationId,
-        parameters,
+        parameters: requestParameters,
         requestBody,
         responses,
         security: opSecurity.length > 0 ? opSecurity : undefined,
@@ -248,9 +276,17 @@ function resolveParameterRef(parameter: any, spec: OpenApiSpec): ApiParameter {
     $ref: undefined,
   };
 
+  const schema = merged.schema || {
+    type: merged.type,
+    format: merged.format,
+    items: merged.items,
+    enum: merged.enum,
+    default: merged.default,
+  };
+
   return {
     ...merged,
-    schema: resolveSchemaRef(merged.schema, spec),
+    schema: resolveSchemaRef(schema, spec),
   };
 }
 

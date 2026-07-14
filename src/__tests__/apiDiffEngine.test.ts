@@ -153,4 +153,19 @@ describe('diffApis with schemas', () => {
     expect(diff.summary.added).toBe(1)
     expect(diff.summary.modified).toBe(1)
   })
+
+  it('detects authentication requirement changes', () => {
+    const oldApis = [makeApi({ method: 'GET', path: '/users' })]
+    const newApis = [
+      makeApi({ method: 'GET', path: '/users', security: [{ bearerAuth: [] }] }),
+    ]
+
+    const diff = diffApis('s1', 'Source 1', oldApis, newApis)
+    expect(diff.summary.modified).toBe(1)
+    expect(diff.apis[0].changes).toContainEqual({
+      path: 'security',
+      oldValue: undefined,
+      newValue: [{ bearerAuth: [] }],
+    })
+  })
 })

@@ -22,6 +22,22 @@ export interface LoadSourcesOptions {
   requestIdBySourceId?: Record<string, string>;
 }
 
+function normalizeSwagger2Server(spec: OpenApiSpec, sourceUrl: string): OpenApiSpec {
+  if (!spec.swagger || spec.servers?.length) return spec;
+
+  try {
+    const source = new URL(sourceUrl);
+    const scheme = spec.schemes?.[0] || source.protocol.replace(':', '');
+    const host = spec.host || source.host;
+    return {
+      ...spec,
+      servers: [{ url: `${scheme}://${host}${spec.basePath || ''}` }],
+    };
+  } catch {
+    return spec;
+  }
+}
+
 function getBundledExampleSpec(url: string): OpenApiSpec | null {
   if (url === 'example://petstore') {
     return petstoreExample as unknown as OpenApiSpec;
@@ -163,7 +179,7 @@ async function loadSingleSource(
     throw new Error(raw.error || translate('errors.loadFailed'));
   }
 
-  const spec = raw.data as OpenApiSpec;
+  const spec = normalizeSwagger2Server(raw.data as OpenApiSpec, input.url);
   if (!spec.openapi && !spec.swagger) {
     throw new Error(translate('errors.invalidSpec'));
   }

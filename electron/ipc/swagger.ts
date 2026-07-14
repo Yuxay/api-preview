@@ -3,6 +3,7 @@ import { readFile, writeFile, mkdir, access, readdir, unlink } from 'fs/promises
 import { constants } from 'fs'
 import { join, dirname } from 'path'
 import { fileURLToPath } from 'url'
+import { assertValidSourceId } from '../../src/core/sourceId'
 
 /** 每个源最多保留的历史快照份数，超出自动清理最旧 */
 const MAX_SNAPSHOTS_PER_SOURCE = 10
@@ -185,6 +186,7 @@ export function registerIpcHandlers(): void {
 
   /** 某源的历史快照目录：snapshots/<sourceId>/ */
   async function sourceSnapshotDir(sourceId: string): Promise<string> {
+    assertValidSourceId(sourceId)
     await ensureDir()
     const dir = join(snapshotsDir, sourceId)
     try { await access(dir, constants.F_OK) } catch { await mkdir(dir, { recursive: true }) }
@@ -193,7 +195,13 @@ export function registerIpcHandlers(): void {
 
   /** 旧版扁平文件路径（snapshots/<sourceId>.json），用于向后兼容读取 */
   function legacySnapshotFile(sourceId: string): string {
+    assertValidSourceId(sourceId)
     return join(snapshotsDir, `${sourceId}.json`)
+  }
+
+  function cacheFile(sourceId: string): string {
+    assertValidSourceId(sourceId)
+    return join(cacheDir, `${sourceId}.json`)
   }
 
   /** 列出某源历史快照，按时间戳降序（最新在前） */
@@ -258,11 +266,11 @@ export function registerIpcHandlers(): void {
 
   ipcMain.handle('storage:save-cache', async (_event, sourceId: string, data: unknown) => {
     await ensureCacheDir()
-    await writeJson(join(cacheDir, `${sourceId}.json`), data)
+    await writeJson(cacheFile(sourceId), data)
   })
 
   ipcMain.handle('storage:get-cache', async (_event, sourceId: string) => {
-    return readJson<any>(join(cacheDir, `${sourceId}.json`), null)
+    return readJson<any>(cacheFile(sourceId), null)
   })
 
   ipcMain.handle('storage:get-all-cache', async () => {
@@ -283,7 +291,7 @@ export function registerIpcHandlers(): void {
   })
 
   ipcMain.handle('storage:remove-cache', async (_event, sourceId: string) => {
-    try { await unlink(join(cacheDir, `${sourceId}.json`)) } catch { /* 忽略 */ }
+    try { await unlink(cacheFile(sourceId)) } catch { /* 忽略 */ }
   })
 
   // ========== 示例项目加载（仅开发/本地使用） ==========

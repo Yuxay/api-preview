@@ -229,7 +229,7 @@ export function useSwagger(): UseSwaggerReturn {
             url: cached.url,
             spec: cached.spec,
             apis: cached.apis,
-            status: 'loaded',
+            status: 'cached',
           })
           finalApis.push(...cached.apis)
           fallbackNames.push(src.name)
@@ -365,6 +365,11 @@ export function useSwagger(): UseSwaggerReturn {
     if (selectedSource.value.includes(id)) {
       selectedSource.value = selectedSource.value.filter((s) => s !== id)
     }
+    if (selectedApi.value?.sourceId === id) {
+      selectedApi.value = null
+    }
+    diffResults.value = diffResults.value.filter((diff) => diff.sourceId !== id)
+    if (diffResults.value.length === 0) showDiff.value = false
     persistSourceOrder()
     persistSourceList()
     recalcTagGroups()

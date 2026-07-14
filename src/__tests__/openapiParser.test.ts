@@ -257,6 +257,56 @@ describe('parseOpenApiSpec', () => {
     })
     expect(apis[0].parameters[0].schema.required).toEqual(['keyword'])
   })
+
+  it('normalizes Swagger 2.0 body parameters and response schemas', () => {
+    const spec: OpenApiSpec = {
+      swagger: '2.0',
+      info: { title: 'Legacy API', version: '1.0.0' },
+      consumes: ['application/json'],
+      produces: ['application/json'],
+      paths: {
+        '/pets': {
+          post: {
+            parameters: [
+              {
+                name: 'body',
+                in: 'body',
+                required: true,
+                description: 'Pet payload',
+                schema: { $ref: '#/definitions/Pet' },
+              },
+              {
+                name: 'limit',
+                in: 'query',
+                required: false,
+                description: '',
+                type: 'integer',
+              },
+            ] as any,
+            responses: {
+              '200': {
+                description: 'OK',
+                schema: { $ref: '#/definitions/Pet' },
+              },
+            },
+          },
+        },
+      },
+      definitions: {
+        Pet: {
+          type: 'object',
+          properties: { name: { type: 'string' } },
+        },
+      },
+    }
+
+    const [api] = parseOpenApiSpec(spec)
+    expect(api.parameters).toHaveLength(1)
+    expect(api.parameters[0]).toMatchObject({ name: 'limit', schema: { type: 'integer' } })
+    expect(api.requestBody?.required).toBe(true)
+    expect(api.requestBody?.content['application/json'].schema.properties).toHaveProperty('name')
+    expect(api.responses[0].content?.['application/json'].schema.properties).toHaveProperty('name')
+  })
 })
 
 describe('groupByTag', () => {
