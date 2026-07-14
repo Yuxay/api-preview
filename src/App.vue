@@ -489,7 +489,7 @@ function expandApiList() {
         </button>
       </div>
 
-      <div class="flex-1 overflow-hidden px-3 pb-3 pt-2">
+      <div class="min-h-0 flex-1 overflow-hidden px-3 pb-3 pt-2">
         <div
           v-if="sources.length === 0 && !loading"
           class="panel-surface flex h-full items-center justify-center"
@@ -609,7 +609,7 @@ function expandApiList() {
             <AppIcon name="chevron-right" :size="14" class="shrink-0" />
           </button>
 
-          <div class="flex min-w-0 flex-col gap-3 overflow-hidden">
+          <div class="flex min-h-0 min-w-0 flex-col gap-3 overflow-hidden">
             <ApiDetail
               v-if="selectedApi"
               :api="selectedApi"
@@ -630,7 +630,7 @@ function expandApiList() {
 
             <div
               v-if="showDiff && diffResults.length > 0"
-              class="grid max-h-[32rem] gap-3 overflow-auto pr-1"
+              class="grid min-h-0 max-h-[32rem] gap-3 overflow-auto pr-1"
             >
               <DiffView
                 v-for="diff in diffResults"
