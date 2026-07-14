@@ -23,6 +23,7 @@ Thumbs.db
 .vscode/
 .history/
 .trae/
+.claude/settings.local.json
 
 # Electron-builder release outputs
 release-*/
