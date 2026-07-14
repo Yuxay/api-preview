@@ -1,6 +1,6 @@
 {
   "name": "api-preview",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "description": "ApiPreview — 轻量级 Swagger/OpenAPI 桌面阅读器 + 轻调试工具",
   "type": "module",
   "main": "dist-electron/main.js",
