@@ -3,12 +3,12 @@ name: Release
 on:
   push:
     tags:
-      - 'v*'          # v1.0.0, v1.2.3-beta.1 等
-  workflow_dispatch:   # 也支持手动触发
+      - 'v*'
+  workflow_dispatch:
     inputs:
       tag:
-        description: 'Git tag 名称（留空则取当前版本）'
-        required: false
+        description: 'Existing release tag, for example v1.4.2'
+        required: true
         type: string
 
 permissions:
@@ -21,42 +21,44 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0   # 获取全部历史，用于生成 changelog
+          ref: ${{ inputs.tag || github.ref }}
+          fetch-depth: 0
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
 
       - name: Install dependencies
         run: npm ci
 
-      - name: Build & package
+      - name: Test
+        run: npm test
+
+      - name: Build and package
         run: npm run dist:win
 
       - name: Generate release notes
-        id: changelog
         shell: pwsh
         run: |
-          # 获取上一个 tag 到当前 tag 的提交记录
-          $prevTag = git tag --sort=-version:refname | Select-Object -Skip 1 | Select-Object -First 1
-          if (-not $prevTag) { $prevTag = 'HEAD' }
-          $log = git log "$prevTag..HEAD" --pretty=format:"- %s (%h)" --no-merges
-          if (-not $log) { $log = "- 初始发布" }
-          # 写入文件供后续步骤使用
+          $previousTag = git tag --sort=-version:refname | Select-Object -Skip 1 -First 1
+          if ($previousTag) {
+            $log = git log "$previousTag..HEAD" --pretty=format:"- %s (%h)" --no-merges
+          } else {
+            $log = git log HEAD --pretty=format:"- %s (%h)" --no-merges
+          }
+          if (-not $log) { $log = '- Initial release' }
           $log | Out-File -FilePath changelog.txt -Encoding utf8
-          # 同时输出到 summary
-          Write-Output "## Changes since $prevTag"
-          $log
 
-      - name: Create Release
+      - name: Create release
         uses: softprops/action-gh-release@v2
         with:
-          name: ApiPreview ${{ github.ref_name }}
+          tag_name: ${{ inputs.tag || github.ref_name }}
+          name: ApiPreview ${{ inputs.tag || github.ref_name }}
           body_path: changelog.txt
           draft: false
-          prerelease: ${{ contains(github.ref_name, 'beta') || contains(github.ref_name, 'alpha') || contains(github.ref_name, 'rc') }}
+          prerelease: ${{ contains(inputs.tag || github.ref_name, 'beta') || contains(inputs.tag || github.ref_name, 'alpha') || contains(inputs.tag || github.ref_name, 'rc') }}
           files: |
             release/*.exe
             release/*.zip
