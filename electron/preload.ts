@@ -57,8 +57,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
   removeCachedSource: (sourceId: string) =>
     ipcRenderer.invoke('storage:remove-cache', sourceId),
 
-  loadExampleSpec: () => ipcRenderer.invoke('example:load'),
-
   getUpdaterState: () => ipcRenderer.invoke('updater:get-state'),
 
   getAppVersion: () => ipcRenderer.invoke('app:get-version'),

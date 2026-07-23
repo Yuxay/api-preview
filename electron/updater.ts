@@ -1,10 +1,7 @@
-import { BrowserWindow, app, ipcMain } from 'electron';
+import { BrowserWindow, app } from 'electron';
 import { autoUpdater } from 'electron-updater';
-import {
-  compareAppVersions,
-  getCurrentAppVersion,
-  normalizeAppVersion,
-} from './version';
+import { handleTrustedIpc } from './security';
+import { getCurrentAppVersion } from './version';
 
 export type UpdaterPhase =
   | 'idle'
@@ -102,25 +99,7 @@ async function checkForUpdatesInternal(
   }
 
   activeCheckSource = source;
-  checkForUpdatesPromise = (async () => {
-    const result = await autoUpdater.checkForUpdates();
-    const currentVersion = getCurrentAppVersion();
-    const availableVersion = normalizeAppVersion(result?.updateInfo?.version);
-
-    // Guard against malformed metadata or stale releases that are not newer.
-    if (
-      !availableVersion ||
-      compareAppVersions(availableVersion, currentVersion) <= 0
-    ) {
-      setUpdaterState({
-        phase: 'up-to-date',
-        availableVersion: undefined,
-        error: undefined,
-        progress: 0,
-      });
-      return;
-    }
-  })().finally(() => {
+  checkForUpdatesPromise = autoUpdater.checkForUpdates().then(() => undefined).finally(() => {
     checkForUpdatesPromise = null;
   });
 
@@ -137,9 +116,9 @@ async function downloadUpdateInternal(): Promise<void> {
 export function registerUpdater(): void {
   setUpdaterState({});
 
-  ipcMain.handle('updater:get-state', () => updaterState);
+  handleTrustedIpc('updater:get-state', () => updaterState);
 
-  ipcMain.handle('updater:check', async () => {
+  handleTrustedIpc('updater:check', async () => {
     if (!supportsAutoUpdate()) {
       return createActionResult(false, 'unsupported');
     }
@@ -175,7 +154,7 @@ export function registerUpdater(): void {
     }
   });
 
-  ipcMain.handle('updater:download', async () => {
+  handleTrustedIpc('updater:download', async () => {
     if (!supportsAutoUpdate()) {
       return createActionResult(false, 'unsupported');
     }
@@ -206,7 +185,7 @@ export function registerUpdater(): void {
     }
   });
 
-  ipcMain.handle('updater:quit-and-install', () => {
+  handleTrustedIpc('updater:quit-and-install', () => {
     if (updaterState.phase !== 'downloaded') {
       return createActionResult(false, 'update-not-downloaded');
     }

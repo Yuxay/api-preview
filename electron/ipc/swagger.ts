@@ -1,14 +1,16 @@
-import { ipcMain, app } from 'electron'
+import { app, safeStorage } from 'electron'
 import { readFile, writeFile, mkdir, access, readdir, unlink, rename } from 'fs/promises'
 import { constants } from 'fs'
-import { join, dirname } from 'path'
-import { fileURLToPath } from 'url'
+import { join } from 'path'
 import { randomUUID } from 'crypto'
 import { assertValidSourceId } from '../../src/core/sourceId'
+import { readResponseBytes, ResponseTooLargeError } from '../../src/utils/http'
+import { handleTrustedIpc } from '../security'
 
 /** 每个源最多保留的历史快照份数，超出自动清理最旧 */
 const MAX_SNAPSHOTS_PER_SOURCE = 10
 const SWAGGER_FETCH_TIMEOUT_MS = 30_000
+const MAX_SWAGGER_BYTES = 20 * 1024 * 1024
 const pendingSwaggerFetches = new Map<string, AbortController>()
 
 /**
@@ -30,7 +32,7 @@ export function validateRequestUrl(url: string): string | null {
 
 export function registerIpcHandlers(): void {
   // ========== Swagger JSON 获取 ==========
-  ipcMain.handle('swagger:fetch', async (_event, url: string, requestId?: string) => {
+  handleTrustedIpc('swagger:fetch', async (_event, url: string, requestId?: string) => {
     const invalid = validateRequestUrl(url)
     if (invalid) {
       return { success: false, error: invalid }
@@ -54,7 +56,9 @@ export function registerIpcHandlers(): void {
         signal: controller.signal,
       })
 
-      const raw = await res.text()
+      const raw = new TextDecoder().decode(
+        await readResponseBytes(res, MAX_SWAGGER_BYTES),
+      )
 
       if (res.status !== 200) {
         return {
@@ -66,6 +70,9 @@ export function registerIpcHandlers(): void {
       const data = JSON.parse(raw)
       return { success: true, data }
     } catch (err: any) {
+      if (err instanceof ResponseTooLargeError) {
+        return { success: false, error: err.message }
+      }
       if (err?.name === 'AbortError' || err?.code === 'ABORT_ERR') {
         return {
           success: false,
@@ -83,7 +90,7 @@ export function registerIpcHandlers(): void {
     }
   })
 
-  ipcMain.handle('swagger:cancel', async (_event, requestId: string) => {
+  handleTrustedIpc('swagger:cancel', async (_event, requestId: string) => {
     const controller = pendingSwaggerFetches.get(requestId)
     if (!controller) {
       return { success: false }
@@ -140,7 +147,7 @@ export function registerIpcHandlers(): void {
     }
   }
 
-  ipcMain.handle('storage:get-urls', async () => {
+  handleTrustedIpc('storage:get-urls', async () => {
     const raw = await readJson<any[]>(urlsFile, [])
     // 兼容旧格式 string[]
     return raw.map((item: any) => {
@@ -149,7 +156,7 @@ export function registerIpcHandlers(): void {
     })
   })
 
-  ipcMain.handle('storage:save-url', async (_event, entry: { name: string; url: string }) => {
+  handleTrustedIpc('storage:save-url', async (_event, entry: { name: string; url: string }) => {
     const raw = await readJson<any[]>(urlsFile, [])
     const entries: { name: string; url: string }[] = raw.map((item: any) => {
       if (typeof item === 'string') return { name: '', url: item }
@@ -160,13 +167,50 @@ export function registerIpcHandlers(): void {
     await writeJson(urlsFile, filtered.slice(0, 5))
   })
 
-  ipcMain.handle('storage:get-token', async () => {
-    const data = await readJson<{ token: string }>(tokenFile, { token: '' })
-    return data.token
+  type StoredToken = { encryptedToken?: string; token?: string }
+
+  handleTrustedIpc('storage:get-token', async () => {
+    const data = await readJson<StoredToken>(tokenFile, {})
+    if (data.encryptedToken) {
+      if (!safeStorage.isEncryptionAvailable()) {
+        console.warn('[openapi-light] System credential encryption is unavailable; ignoring stored token')
+        return ''
+      }
+      try {
+        return safeStorage.decryptString(Buffer.from(data.encryptedToken, 'base64'))
+      } catch (err) {
+        // A copied or damaged user-data directory must not prevent source recovery.
+        console.warn('[openapi-light] Failed to decrypt stored token; ignoring it', err)
+        return ''
+      }
+    }
+
+    // Migrate files written by older releases once OS-backed encryption is available.
+    if (data.token) {
+      if (safeStorage.isEncryptionAvailable()) {
+        try {
+          const encryptedToken = safeStorage.encryptString(data.token).toString('base64')
+          await writeJson(tokenFile, { encryptedToken })
+        } catch (err) {
+          // Keep the legacy token usable when migration cannot write to userData.
+          console.warn('[openapi-light] Failed to encrypt stored token; keeping legacy token', err)
+        }
+      }
+      return data.token
+    }
+    return ''
   })
 
-  ipcMain.handle('storage:save-token', async (_event, token: string) => {
-    await writeJson(tokenFile, { token })
+  handleTrustedIpc('storage:save-token', async (_event, token: string) => {
+    if (!token) {
+      await writeJson(tokenFile, {})
+      return
+    }
+    if (!safeStorage.isEncryptionAvailable()) {
+      throw new Error('System credential encryption is unavailable')
+    }
+    const encryptedToken = safeStorage.encryptString(token).toString('base64')
+    await writeJson(tokenFile, { encryptedToken })
   })
 
   // ========== 来源列表持久化（重启后自动恢复） ==========
@@ -178,11 +222,11 @@ export function registerIpcHandlers(): void {
     url: string
   }
 
-  ipcMain.handle('storage:get-sources', async () => {
+  handleTrustedIpc('storage:get-sources', async () => {
     return readJson<PersistedSource[]>(sourcesFile, [])
   })
 
-  ipcMain.handle('storage:save-sources', async (_event, sources: PersistedSource[]) => {
+  handleTrustedIpc('storage:save-sources', async (_event, sources: PersistedSource[]) => {
     await writeJson(sourcesFile, sources)
   })
 
@@ -226,7 +270,7 @@ export function registerIpcHandlers(): void {
   }
 
   // 返回「最新历史」快照（用于与当前对比）
-  ipcMain.handle('storage:get-snapshot', async (_event, sourceId: string) => {
+  handleTrustedIpc('storage:get-snapshot', async (_event, sourceId: string) => {
     const timestamps = await listSnapshotTimestamps(sourceId)
     if (timestamps.length > 0) {
       const dir = await sourceSnapshotDir(sourceId)
@@ -237,7 +281,7 @@ export function registerIpcHandlers(): void {
   })
 
   // 追加一份带时间戳的快照，并清理超出上限的最旧份
-  ipcMain.handle('storage:save-snapshot', async (_event, sourceId: string, data: unknown) => {
+  handleTrustedIpc('storage:save-snapshot', async (_event, sourceId: string, data: unknown) => {
     const dir = await sourceSnapshotDir(sourceId)
     const ts =
       data && typeof data === 'object' && typeof (data as any).timestamp === 'number'
@@ -256,7 +300,7 @@ export function registerIpcHandlers(): void {
   })
 
   // 列出某源全部历史快照时间戳（最新在前）
-  ipcMain.handle('storage:list-snapshots', async (_event, sourceId: string) => {
+  handleTrustedIpc('storage:list-snapshots', async (_event, sourceId: string) => {
     return listSnapshotTimestamps(sourceId)
   })
 
@@ -269,16 +313,16 @@ export function registerIpcHandlers(): void {
     return cacheDir
   }
 
-  ipcMain.handle('storage:save-cache', async (_event, sourceId: string, data: unknown) => {
+  handleTrustedIpc('storage:save-cache', async (_event, sourceId: string, data: unknown) => {
     await ensureCacheDir()
     await writeJson(cacheFile(sourceId), data)
   })
 
-  ipcMain.handle('storage:get-cache', async (_event, sourceId: string) => {
+  handleTrustedIpc('storage:get-cache', async (_event, sourceId: string) => {
     return readJson<any>(cacheFile(sourceId), null)
   })
 
-  ipcMain.handle('storage:get-all-cache', async () => {
+  handleTrustedIpc('storage:get-all-cache', async () => {
     const dir = await ensureCacheDir()
     let files: string[]
     try {
@@ -295,7 +339,7 @@ export function registerIpcHandlers(): void {
     return results
   })
 
-  ipcMain.handle('storage:remove-cache', async (_event, sourceId: string) => {
+  handleTrustedIpc('storage:remove-cache', async (_event, sourceId: string) => {
     try {
       await unlink(cacheFile(sourceId))
     } catch (err) {
@@ -303,18 +347,4 @@ export function registerIpcHandlers(): void {
     }
   })
 
-  // ========== 示例项目加载（仅开发/本地使用） ==========
-  ipcMain.handle('example:load', async () => {
-    try {
-      // 使用与 window.ts 相同的方式解析路径：从 dist-electron/ 回到项目根目录
-      const __filename = fileURLToPath(import.meta.url)
-      const __dirname = dirname(__filename)
-      const examplePath = join(__dirname, '..', 'examples', 'petstore.json')
-      const raw = await readFile(examplePath, 'utf-8')
-      const data = JSON.parse(raw)
-      return { success: true, data }
-    } catch (err: any) {
-      return { success: false, error: `无法加载示例项目: ${err.message}` }
-    }
-  })
 }

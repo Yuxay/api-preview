@@ -1,8 +1,9 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { getPersistedSources } from '@/utils/storage'
+import { getPersistedSources, getToken } from '@/utils/storage'
 
 afterEach(() => {
   vi.unstubAllGlobals()
+  vi.restoreAllMocks()
 })
 
 describe('persisted source validation', () => {
@@ -29,5 +30,18 @@ describe('persisted source validation', () => {
     await expect(getPersistedSources()).resolves.toEqual([
       { id: 'src-valid', name: 'Users', url: 'https://example.com/openapi.json' },
     ])
+  })
+})
+
+describe('getToken', () => {
+  it('falls back to an empty token when Electron storage rejects', async () => {
+    vi.stubGlobal('window', {
+      electronAPI: {
+        getToken: vi.fn().mockRejectedValue(new Error('Cannot decrypt token')),
+      },
+    })
+    vi.spyOn(console, 'warn').mockImplementation(() => undefined)
+
+    await expect(getToken()).resolves.toBe('')
   })
 })

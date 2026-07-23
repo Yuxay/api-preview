@@ -1,11 +1,13 @@
-import { ipcMain } from 'electron'
 import { validateRequestUrl } from '../ipc/swagger'
+import { handleTrustedIpc } from '../security'
 import { isTextLikeMediaType } from '../../src/utils/format'
+import { readResponseBytes } from '../../src/utils/http'
 
 const DEFAULT_TIMEOUT_MS = 30_000
+const MAX_RESPONSE_BYTES = 50 * 1024 * 1024
 
 export function registerProxyHandler(): void {
-  ipcMain.handle('proxy:request', async (_event, options: {
+  handleTrustedIpc('proxy:request', async (_event, options: {
     url: string
     method: string
     headers: Record<string, string>
@@ -43,33 +45,30 @@ export function registerProxyHandler(): void {
         signal: controller.signal,
       })
 
-      clearTimeout(timer)
       const headersObj: Record<string, string> = {}
       res.headers.forEach((value, key) => {
         headersObj[key] = value
       })
       const contentType = res.headers.get('content-type') || undefined
       const textLike = isTextLikeMediaType(contentType)
-      const arrayBuffer = await res.arrayBuffer()
+      const bytes = await readResponseBytes(res, MAX_RESPONSE_BYTES)
       const raw = textLike
-        ? new TextDecoder().decode(arrayBuffer)
-        : Buffer.from(arrayBuffer).toString('base64')
+        ? new TextDecoder().decode(bytes)
+        : Buffer.from(bytes).toString('base64')
 
       return {
-        success: res.ok || (res.status >= 200 && res.status < 400),
+        success: res.ok,
         status: res.status,
         statusText: res.statusText || httpStatusText(res.status),
         headers: headersObj,
         body: raw,
         bodyEncoding: textLike ? 'text' : 'base64',
         contentType,
-        bodySize: arrayBuffer.byteLength,
+        bodySize: bytes.byteLength,
         duration: Date.now() - start,
         error: res.ok ? undefined : `HTTP ${res.status}: ${raw.slice(0, 300)}`,
       }
     } catch (err: any) {
-      clearTimeout(timer)
-
       // 区分错误类型
       let error: string
       if (err?.name === 'AbortError' || err?.code === 'ABORT_ERR') {
@@ -91,6 +90,8 @@ export function registerProxyHandler(): void {
         duration: Date.now() - start,
         error,
       }
+    } finally {
+      clearTimeout(timer)
     }
   })
 }

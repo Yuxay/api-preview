@@ -8,10 +8,6 @@
     <link rel="icon" type="image/svg+xml" href="/brand/logo-mark-minimal.svg" />
     <!-- Favicon fallback: 32x32 PNG for legacy browsers (generated at build time) -->
     <link rel="icon" type="image/png" sizes="32x32" href="/brand/logo-mark-minimal.png" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
-
     <!-- ── Splash Screen Styles (inline for zero-latency rendering) ── -->
     <style>
       /* ---- Root container ---- */
@@ -118,15 +114,6 @@
         text-shadow: 0 0 28px rgba(56, 189, 248, 0.12);
       }
 
-      /* ---- Version ---- */
-      .splash-version {
-        font-family: 'JetBrains Mono', 'Cascadia Code', 'Fira Code', 'Courier New', monospace;
-        font-size: 11px;
-        font-weight: 400;
-        letter-spacing: 0.12em;
-        color: #64748b;
-      }
-
       /* ---- Status diamonds ---- */
       .splash-diamonds {
         display: flex;
@@ -184,11 +171,6 @@
         <!-- App title -->
         <div class="splash-stage" style="--splash-delay: 0.12s">
           <h1 class="splash-title">API&nbsp;PREVIEW</h1>
-        </div>
-
-        <!-- Version tag -->
-        <div class="splash-stage" style="--splash-delay: 0.24s">
-          <span class="splash-version">v1.0.6</span>
         </div>
 
         <!-- Status diamonds -->

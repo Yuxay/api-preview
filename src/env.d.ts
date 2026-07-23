@@ -22,11 +22,6 @@ interface ElectronAPI {
   getCachedSource: (sourceId: string) => Promise<unknown>;
   getAllCachedSources: () => Promise<unknown[]>;
   removeCachedSource: (sourceId: string) => Promise<void>;
-  loadExampleSpec: () => Promise<{
-    success: boolean;
-    data?: unknown;
-    error?: string;
-  }>;
   getUpdaterState: () => Promise<AppUpdaterState>;
   getAppVersion: () => Promise<string>;
   checkForUpdates: () => Promise<AppUpdaterActionResult>;

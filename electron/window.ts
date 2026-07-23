@@ -1,6 +1,6 @@
 import { BrowserWindow, shell } from 'electron';
 import { join, dirname } from 'path';
-import { fileURLToPath } from 'url';
+import { fileURLToPath, pathToFileURL } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -31,15 +31,18 @@ export function createMainWindow(): BrowserWindow {
 
   globalThis.__mainWindow = win;
 
+  configureContentSecurityPolicy(win);
+
+  const appEntryFile = join(__dirname, '../dist/index.html');
   // 开发模式加载 Vite dev server，生产模式加载打包文件
   if (process.env.VITE_DEV_SERVER_URL) {
     win.loadURL(process.env.VITE_DEV_SERVER_URL);
     win.webContents.openDevTools({ mode: 'detach' });
   } else {
-    win.loadFile(join(__dirname, '../dist/index.html'));
+    win.loadFile(appEntryFile);
   }
 
-  hardenNavigation(win);
+  hardenNavigation(win, appEntryFile);
 
   win.on('closed', () => {
     globalThis.__mainWindow = undefined;
@@ -52,13 +55,23 @@ export function createMainWindow(): BrowserWindow {
  * 收紧导航面：仅允许停留在应用自身页面（dev server / file），
  * 任何跳转到外部页面的请求一律拦截，http/https 改用系统浏览器打开。
  */
-function hardenNavigation(win: BrowserWindow): void {
+function hardenNavigation(win: BrowserWindow, appEntryFile: string): void {
   const devServerUrl = process.env.VITE_DEV_SERVER_URL;
+  const devOrigin = devServerUrl ? new URL(devServerUrl).origin : null;
+  const appEntryUrl = new URL(pathToFileURL(appEntryFile).href);
 
   function isAppUrl(target: string): boolean {
-    if (target.startsWith('file://')) return true;
-    if (devServerUrl && target.startsWith(devServerUrl)) return true;
-    return false;
+    try {
+      const targetUrl = new URL(target);
+      if (devOrigin) return targetUrl.origin === devOrigin;
+      return (
+        targetUrl.protocol === 'file:' &&
+        targetUrl.host === appEntryUrl.host &&
+        targetUrl.pathname === appEntryUrl.pathname
+      );
+    } catch {
+      return false;
+    }
   }
 
   // 阻止应用框架本身被导航到外部页面
@@ -72,6 +85,31 @@ function hardenNavigation(win: BrowserWindow): void {
   win.webContents.setWindowOpenHandler(({ url }) => {
     openExternalIfWeb(url);
     return { action: 'deny' };
+  });
+}
+
+function configureContentSecurityPolicy(win: BrowserWindow): void {
+  if (process.env.VITE_DEV_SERVER_URL) return;
+
+  const policy = [
+    "default-src 'self'",
+    "script-src 'self'",
+    "style-src 'self' 'unsafe-inline'",
+    "img-src 'self' data:",
+    "font-src 'self' data:",
+    "connect-src 'self' http: https:",
+    "object-src 'none'",
+    "base-uri 'none'",
+    "frame-ancestors 'none'",
+  ].join('; ');
+
+  win.webContents.session.webRequest.onHeadersReceived((details, callback) => {
+    callback({
+      responseHeaders: {
+        ...details.responseHeaders,
+        'Content-Security-Policy': [policy],
+      },
+    });
   });
 }
 

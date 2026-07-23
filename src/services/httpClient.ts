@@ -1,5 +1,8 @@
 import { translate } from '@/i18n'
 import { isTextLikeMediaType } from '@/utils/format'
+import { readResponseBytes } from '@/utils/http'
+
+const MAX_RESPONSE_BYTES = 50 * 1024 * 1024
 
 export interface ProxyRequestOptions {
   url: string
@@ -50,10 +53,10 @@ export async function sendRequest(options: ProxyRequestOptions): Promise<ProxyRe
     })
     const contentType = resp.headers.get('content-type') || undefined
     const textLike = isTextLikeMediaType(contentType)
-    const arrayBuffer = await resp.arrayBuffer()
+    const bytes = await readResponseBytes(resp, MAX_RESPONSE_BYTES)
     const body = textLike
-      ? new TextDecoder().decode(arrayBuffer)
-      : arrayBufferToBase64(arrayBuffer)
+      ? new TextDecoder().decode(bytes)
+      : uint8ArrayToBase64(bytes)
     return {
       success: resp.ok,
       status: resp.status,
@@ -62,7 +65,7 @@ export async function sendRequest(options: ProxyRequestOptions): Promise<ProxyRe
       body,
       bodyEncoding: textLike ? 'text' : 'base64',
       contentType,
-      bodySize: arrayBuffer.byteLength,
+      bodySize: bytes.byteLength,
       duration: Date.now() - start,
     }
   } catch (e: any) {
@@ -78,9 +81,8 @@ export async function sendRequest(options: ProxyRequestOptions): Promise<ProxyRe
   }
 }
 
-function arrayBufferToBase64(buffer: ArrayBuffer): string {
+function uint8ArrayToBase64(bytes: Uint8Array): string {
   let binary = ''
-  const bytes = new Uint8Array(buffer)
   const chunkSize = 0x8000
   for (let i = 0; i < bytes.length; i += chunkSize) {
     const chunk = bytes.subarray(i, i + chunkSize)

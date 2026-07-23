@@ -66,7 +66,12 @@ export async function saveUrl(entry: RecentEntry): Promise<void> {
 
 export async function getToken(): Promise<string> {
   if (isElectron()) {
-    return window.electronAPI.getToken()
+    try {
+      return await window.electronAPI.getToken()
+    } catch (error) {
+      console.warn('[storage] Failed to load stored token:', error)
+      return ''
+    }
   }
   return localStorage.getItem(STORAGE_KEY_TOKEN) || ''
 }
