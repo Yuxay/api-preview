@@ -44,6 +44,10 @@ export interface ApiResponse {
   schema?: ApiSchema;
 }
 
+export interface ReferenceObject {
+  $ref: string;
+}
+
 export interface ApiSchema {
   type?: string;
   format?: string;
@@ -78,10 +82,12 @@ export interface OpenApiSpec {
   schemes?: string[];
   consumes?: string[];
   produces?: string[];
-  paths: Record<string, PathItem>;
+  paths: Record<string, PathItem | ReferenceObject>;
   components?: {
     schemas?: Record<string, ApiSchema>;
-    parameters?: Record<string, ApiParameter>;
+    parameters?: Record<string, ApiParameter | ReferenceObject>;
+    requestBodies?: Record<string, ApiRequestBody | ReferenceObject>;
+    responses?: Record<string, ApiResponse | ReferenceObject>;
     securitySchemes?: Record<string, unknown>;
   };
   definitions?: Record<string, ApiSchema>;
@@ -101,6 +107,7 @@ export interface SwaggerSource {
 }
 
 export interface PathItem {
+  $ref?: string;
   get?: OperationObject;
   post?: OperationObject;
   put?: OperationObject;
@@ -109,7 +116,7 @@ export interface PathItem {
   options?: OperationObject;
   head?: OperationObject;
   /** path-level 公共参数，适用于该路径下所有操作 */
-  parameters?: ApiParameter[];
+  parameters?: (ApiParameter | ReferenceObject)[];
 }
 
 export interface OperationObject {
@@ -117,10 +124,10 @@ export interface OperationObject {
   summary?: string;
   description?: string;
   operationId?: string;
-  parameters?: ApiParameter[];
-  requestBody?: ApiRequestBody;
+  parameters?: (ApiParameter | ReferenceObject)[];
+  requestBody?: ApiRequestBody | ReferenceObject;
   consumes?: string[];
   produces?: string[];
-  responses: Record<string, ApiResponse>;
+  responses: Record<string, ApiResponse | ReferenceObject>;
   security?: Record<string, string[]>[];
 }

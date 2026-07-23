@@ -5,6 +5,9 @@ import type {
   OpenApiSpec,
   OperationObject,
   ApiSchema,
+  ApiRequestBody,
+  PathItem,
+  ReferenceObject,
 } from './types';
 
 /**
@@ -16,7 +19,8 @@ export function parseOpenApiSpec(spec: OpenApiSpec): ApiItem[] {
   const paths = spec.paths || {};
   const globalSecurity = spec.security || [];
 
-  for (const [pathUrl, pathItem] of Object.entries(paths)) {
+  for (const [pathUrl, rawPathItem] of Object.entries(paths)) {
+    const pathItem = resolveObjectRef<PathItem>(rawPathItem, spec);
     if (!pathItem) continue;
 
     // path-level 公共参数（适用于该路径下所有操作）
@@ -72,10 +76,14 @@ export function parseOpenApiSpec(spec: OpenApiSpec): ApiItem[] {
       const requestParameters = parameters.filter(
         (parameter) => String(parameter.in) !== 'body',
       );
-      const requestBody = operation.requestBody
+      const resolvedRequestBody = resolveObjectRef<ApiRequestBody>(
+        operation.requestBody,
+        spec,
+      );
+      const requestBody = resolvedRequestBody
         ? {
-            ...operation.requestBody,
-            content: resolveContentRefs(operation.requestBody.content, spec),
+            ...resolvedRequestBody,
+            content: resolveContentRefs(resolvedRequestBody.content, spec),
           }
         : bodyParam
           ? {
@@ -94,22 +102,26 @@ export function parseOpenApiSpec(spec: OpenApiSpec): ApiItem[] {
 
       const responses: ApiResponse[] = Object.entries(
         operation.responses || {},
-      ).map(([code, resp]) => ({
-        code,
-        description: resp.description || '',
-        content: resp.content
-          ? resolveContentRefs(resp.content, spec)
-          : resp.schema
-            ? Object.fromEntries(
-                (operation.produces || spec.produces || ['application/json']).map(
-                  (mediaType) => [
-                    mediaType,
-                    { schema: resolveSchemaRef(resp.schema!, spec) },
-                  ],
-                ),
-              )
-            : undefined,
-      }));
+      ).flatMap(([code, rawResponse]) => {
+        const resp = resolveObjectRef<ApiResponse>(rawResponse, spec);
+        if (!resp) return [];
+        return [{
+          code,
+          description: resp.description || '',
+          content: resp.content
+            ? resolveContentRefs(resp.content, spec)
+            : resp.schema
+              ? Object.fromEntries(
+                  (operation.produces || spec.produces || ['application/json']).map(
+                    (mediaType) => [
+                      mediaType,
+                      { schema: resolveSchemaRef(resp.schema!, spec) },
+                    ],
+                  ),
+                )
+              : undefined,
+        }];
+      });
 
       const opSecurity = operation.security || globalSecurity;
 
@@ -134,7 +146,7 @@ export function parseOpenApiSpec(spec: OpenApiSpec): ApiItem[] {
 
 /** 提取路径中的 {paramName} 参数名 */
 export function extractPathParams(path: string): string[] {
-  const re = /\{(\w+)\}/g;
+  const re = /\{([^{}]+)\}/g;
   const names: string[] = [];
   let m: RegExpExecArray | null;
   while ((m = re.exec(path)) !== null) {
@@ -224,7 +236,7 @@ function resolveSchemaRef(
 }
 
 function resolveContentRefs(
-  content: Record<string, any>,
+  content: Record<string, any> = {},
   spec: OpenApiSpec,
 ): Record<string, any> {
   const resolved: Record<string, any> = {};
@@ -237,7 +249,7 @@ function resolveContentRefs(
   return resolved;
 }
 
-function resolveRef(ref: string, spec: OpenApiSpec): ApiSchema | null {
+function resolveRef<T = ApiSchema>(ref: string, spec: OpenApiSpec): T | null {
   // 例如 #/components/schemas/Pet 或 Swagger 2.0 #/definitions/Pet
   const parts = ref.replace(/^#\//, '').split('/');
   let current: any = spec;
@@ -251,7 +263,26 @@ function resolveRef(ref: string, spec: OpenApiSpec): ApiSchema | null {
     }
     current = current[key];
   }
-  return (current as ApiSchema) || null;
+  return (current as T) || null;
+}
+
+function resolveObjectRef<T extends object>(
+  value: T | ReferenceObject | undefined,
+  spec: OpenApiSpec,
+  visited: Set<string> = new Set(),
+): T | null {
+  if (!value) return null;
+  if ('$ref' in value && typeof value.$ref === 'string') {
+    if (visited.has(value.$ref)) return null;
+    const nextVisited = new Set(visited).add(value.$ref);
+    const referenced = resolveRef<T | ReferenceObject>(value.$ref, spec);
+    if (!referenced) return null;
+    const resolved = resolveObjectRef<T>(referenced, spec, nextVisited);
+    if (!resolved) return null;
+    const { $ref: _ref, ...siblings } = value;
+    return { ...resolved, ...siblings } as T;
+  }
+  return value as T;
 }
 
 function resolveParameterRef(parameter: any, spec: OpenApiSpec): ApiParameter {
@@ -265,10 +296,7 @@ function resolveParameterRef(parameter: any, spec: OpenApiSpec): ApiParameter {
     };
   }
 
-  const referenced =
-    parameter.$ref && typeof parameter.$ref === 'string'
-      ? (resolveRef(parameter.$ref, spec) as any) || parameter
-      : parameter;
+  const referenced = resolveObjectRef<ApiParameter>(parameter, spec) || parameter;
 
   const merged = {
     ...referenced,

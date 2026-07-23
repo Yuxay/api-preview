@@ -1,4 +1,13 @@
-import type { ApiSchema, OpenApiSpec, OperationObject, PathItem } from './types'
+import type {
+  ApiParameter,
+  ApiRequestBody,
+  ApiResponse,
+  ApiSchema,
+  OpenApiSpec,
+  OperationObject,
+  PathItem,
+  ReferenceObject,
+} from './types'
 
 /**
  * 影响分析（轻量版）
@@ -64,6 +73,31 @@ function getSchemas(spec: OpenApiSpec): Record<string, ApiSchema> {
   return fromDefinitions || {}
 }
 
+function resolveObjectRef<T extends object>(
+  spec: OpenApiSpec,
+  value: T | ReferenceObject | undefined,
+): T | undefined {
+  let current: T | ReferenceObject | undefined = value
+  const visited = new Set<string>()
+
+  while (current && '$ref' in current) {
+    const ref = current.$ref
+    if (!ref.startsWith('#/') || visited.has(ref)) return undefined
+    visited.add(ref)
+
+    let resolved: unknown = spec
+    for (const segment of ref.slice(2).split('/')) {
+      const key = segment.replace(/~1/g, '/').replace(/~0/g, '~')
+      if (!resolved || typeof resolved !== 'object') return undefined
+      resolved = (resolved as Record<string, unknown>)[key]
+    }
+    if (!resolved || typeof resolved !== 'object') return undefined
+    current = resolved as T | ReferenceObject
+  }
+
+  return current as T | undefined
+}
+
 /** 构建 DTO → 其直接引用的其它 DTO 的图 */
 export function buildDtoRefGraph(spec: OpenApiSpec): Map<string, Set<string>> {
   const graph = new Map<string, Set<string>>()
@@ -82,20 +116,24 @@ export function buildApiRefMap(spec: OpenApiSpec): Map<string, Set<string>> {
   const map = new Map<string, Set<string>>()
   const paths = spec.paths || {}
 
-  for (const [pathUrl, pathItem] of Object.entries(paths)) {
+  for (const [pathUrl, pathItemOrRef] of Object.entries(paths)) {
+    const pathItem = resolveObjectRef<PathItem>(spec, pathItemOrRef)
     if (!pathItem) continue
     for (const method of HTTP_METHODS) {
       const operation = pathItem[method] as OperationObject | undefined
       if (!operation) continue
 
       const refs = new Set<string>()
-      collectContentRefs(operation.requestBody?.content as never, refs)
-      for (const resp of Object.values(operation.responses || {})) {
-        collectContentRefs(resp?.content as never, refs)
+      const requestBody = resolveObjectRef<ApiRequestBody>(spec, operation.requestBody)
+      collectContentRefs(requestBody?.content, refs)
+      for (const responseOrRef of Object.values(operation.responses || {})) {
+        const response = resolveObjectRef<ApiResponse>(spec, responseOrRef)
+        collectContentRefs(response?.content, refs)
       }
       // 参数 schema 中的 $ref 同样纳入
-      for (const p of operation.parameters || []) {
-        collectRefs(p.schema, refs)
+      for (const parameterOrRef of operation.parameters || []) {
+        const parameter = resolveObjectRef<ApiParameter>(spec, parameterOrRef)
+        collectRefs(parameter?.schema, refs)
       }
       map.set(apiKeyOf(String(method), pathUrl), refs)
     }

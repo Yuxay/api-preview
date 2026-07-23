@@ -74,6 +74,42 @@ describe('buildApiRefMap', () => {
     expect([...(map.get(apiKeyOf('get', '/orders')) || [])]).toEqual(['Order'])
     expect([...(map.get(apiKeyOf('get', '/health')) || [])]).toEqual([])
   })
+
+  it('follows path, request body, response, and parameter refs', () => {
+    const spec = {
+      ...SPEC,
+      paths: {
+        '/referenced': { $ref: '#/x-paths/referenced' },
+      },
+      'x-paths': {
+        referenced: {
+          post: {
+            parameters: [{ $ref: '#/components/parameters/filter' }],
+            requestBody: { $ref: '#/components/requestBodies/input' },
+            responses: { '200': { $ref: '#/components/responses/output' } },
+          },
+        },
+      },
+      components: {
+        ...SPEC.components,
+        parameters: {
+          filter: { name: 'filter', in: 'query', schema: { $ref: '#/components/schemas/Filter' } },
+        },
+        requestBodies: {
+          input: { content: { 'application/json': { schema: { $ref: '#/components/schemas/User' } } } },
+        },
+        responses: {
+          output: { description: 'OK', content: { 'application/json': { schema: { $ref: '#/components/schemas/Order' } } } },
+        },
+      },
+    } as unknown as OpenApiSpec
+
+    expect([...buildApiRefMap(spec).get('POST:/referenced')!]).toEqual([
+      'User',
+      'Order',
+      'Filter',
+    ])
+  })
 })
 
 describe('computeAffectedApis', () => {

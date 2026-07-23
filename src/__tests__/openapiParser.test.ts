@@ -20,6 +20,10 @@ describe('extractPathParams', () => {
   it('returns empty array when no params', () => {
     expect(extractPathParams('/users')).toEqual([])
   })
+
+  it('supports non-word path parameter names', () => {
+    expect(extractPathParams('/users/{user-id}')).toEqual(['user-id'])
+  })
 })
 
 describe('parseOpenApiSpec', () => {
@@ -205,6 +209,54 @@ describe('parseOpenApiSpec', () => {
       required: true,
       description: '用户 ID',
     })
+  })
+
+  it('resolves path, request body, and response component refs', () => {
+    const spec = {
+      ...MINIMAL_SPEC,
+      components: {
+        schemas: {
+          Pet: { type: 'object', properties: { name: { type: 'string' } } },
+        },
+        requestBodies: {
+          PetBody: {
+            description: 'Pet payload',
+            required: true,
+            content: {
+              'application/json': { schema: { $ref: '#/components/schemas/Pet' } },
+            },
+          },
+        },
+        responses: {
+          PetResponse: {
+            description: 'Pet result',
+            content: {
+              'application/json': { schema: { $ref: '#/components/schemas/Pet' } },
+            },
+          },
+        },
+      },
+      paths: {
+        '/pets': { $ref: '#/x-paths/PetsAlias' },
+      },
+      'x-paths': {
+        PetsAlias: { $ref: '#/x-paths/Pets' },
+        Pets: {
+          post: {
+            requestBody: { $ref: '#/components/requestBodies/PetBody' },
+            responses: {
+              '200': { $ref: '#/components/responses/PetResponse' },
+            },
+          },
+        },
+      },
+    } as unknown as OpenApiSpec
+
+    const [api] = parseOpenApiSpec(spec)
+    expect(api.requestBody?.required).toBe(true)
+    expect(api.requestBody?.content['application/json'].schema.properties).toHaveProperty('name')
+    expect(api.responses[0].description).toBe('Pet result')
+    expect(api.responses[0].content?.['application/json'].schema.properties).toHaveProperty('name')
   })
 
   it('merges allOf object properties for parameter schemas', () => {
