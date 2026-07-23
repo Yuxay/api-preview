@@ -28,6 +28,7 @@ export interface RequestBuildOptions {
   token: string
   pathParams: Record<string, string>
   queryParams: Record<string, string>
+  cookieParams: Record<string, string>
   headers: Record<string, string>
   body: string // raw JSON string from editor
 }
@@ -45,10 +46,16 @@ export function buildRequest(api: ApiItem, opts: RequestBuildOptions): BuildResu
   }
 
   // 2. 构建 Headers
-  const headers = buildHeaders(api, opts)
+  const method = api.method.toUpperCase()
+  const supportsBody = !['GET', 'HEAD'].includes(method)
+    && (Boolean(api.requestBody) || ['POST', 'PUT', 'PATCH'].includes(method))
+  const headers = buildHeaders(opts, supportsBody)
 
   // 3. 构建/校验 Body
-  const bodyResult = buildBody(api.method, opts.body, headers['Content-Type'])
+  const contentType = Object.entries(headers).find(
+    ([key]) => key.toLowerCase() === 'content-type',
+  )?.[1]
+  const bodyResult = buildBody(supportsBody, opts.body, contentType)
   if (bodyResult !== null && !bodyResult.ok) {
     return { ok: false, error: bodyResult.error }
   }
@@ -89,7 +96,7 @@ function buildUrl(
   }
 
   // 检查是否还有未替换的路径参数
-  const remaining = resolvedPath.match(/\{(\w+)\}/)
+  const remaining = resolvedPath.match(/\{([^{}]+)\}/)
   if (remaining) {
     return {
       ok: false,
@@ -135,11 +142,14 @@ function buildQueryString(params: Record<string, string>): string {
 
 // ========== Headers 构建 ==========
 
-function buildHeaders(api: ApiItem, opts: RequestBuildOptions): Record<string, string> {
+function buildHeaders(
+  opts: RequestBuildOptions,
+  supportsBody: boolean,
+): Record<string, string> {
   const headers: Record<string, string> = {}
 
   // 1. 默认 Content-Type（有 body 的方法）
-  if (['POST', 'PUT', 'PATCH'].includes(api.method.toUpperCase())) {
+  if (supportsBody) {
     headers['Content-Type'] = 'application/json'
   }
 
@@ -148,9 +158,19 @@ function buildHeaders(api: ApiItem, opts: RequestBuildOptions): Record<string, s
     headers['Authorization'] = `Bearer ${opts.token}`
   }
 
+  const cookies = Object.entries(opts.cookieParams)
+    .filter(([, value]) => value)
+    .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value)}`)
+    .join('; ')
+  if (cookies) headers.Cookie = cookies
+
   // 3. 用户自定义 headers（覆盖默认值）
   for (const [key, value] of Object.entries(opts.headers)) {
     if (value) {
+      const existingKey = Object.keys(headers).find(
+        (header) => header.toLowerCase() === key.toLowerCase(),
+      )
+      if (existingKey) delete headers[existingKey]
       headers[key] = value
     }
   }
@@ -166,12 +186,12 @@ function buildHeaders(api: ApiItem, opts: RequestBuildOptions): Record<string, s
 // ========== Body 处理 ==========
 
 function buildBody(
-  method: string,
+  supportsBody: boolean,
   rawBody: string,
   contentType?: string,
 ): { ok: boolean; body?: string; error?: RequestBuildError } | null {
   // 无 body 的方法跳过
-  if (!['POST', 'PUT', 'PATCH'].includes(method.toUpperCase())) {
+  if (!supportsBody) {
     return null
   }
 

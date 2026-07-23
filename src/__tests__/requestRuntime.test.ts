@@ -25,6 +25,7 @@ function makeOpts(overrides: Partial<RequestBuildOptions> = {}): RequestBuildOpt
     token: '',
     pathParams: { id: '42' },
     queryParams: {},
+    cookieParams: {},
     headers: {},
     body: '',
     ...overrides,
@@ -101,6 +102,45 @@ describe('buildRequest', () => {
     expect(result.config!.headers['Content-Type']).toBe('text/plain')
   })
 
+  it('sends a documented DELETE request body', () => {
+    const api = makeApi({
+      method: 'DELETE',
+      requestBody: {
+        description: '',
+        required: true,
+        content: { 'application/json': { schema: { type: 'object' } } },
+      },
+    })
+    const result = buildRequest(api, makeOpts({ body: '{"hard":true}' }))
+
+    expect(result.ok).toBe(true)
+    expect(result.config?.body).toBe('{"hard":true}')
+  })
+
+  it.each(['GET', 'HEAD'])('does not send a documented %s request body', (method) => {
+    const api = makeApi({
+      method,
+      requestBody: {
+        description: '',
+        required: false,
+        content: { 'application/json': { schema: { type: 'object' } } },
+      },
+    })
+    const result = buildRequest(api, makeOpts({ body: '{"ignored":true}' }))
+
+    expect(result.ok).toBe(true)
+    expect(result.config?.body).toBeUndefined()
+    expect(result.config?.headers['Content-Type']).toBeUndefined()
+  })
+
+  it('serializes cookie parameters', () => {
+    const result = buildRequest(makeApi(), makeOpts({
+      cookieParams: { session: 'a b', empty: '' },
+    }))
+
+    expect(result.config?.headers.Cookie).toBe('session=a%20b')
+  })
+
   it('sets Content-Type header for POST', () => {
     const api = makeApi({ method: 'POST' })
     const opts = makeOpts({ body: '{"x":1}' })
@@ -126,6 +166,16 @@ describe('buildRequest', () => {
     const result = buildRequest(api, opts)
 
     expect(result.config!.headers['Content-Type']).toBe('application/xml')
+  })
+
+  it('user headers override defaults case-insensitively', () => {
+    const result = buildRequest(makeApi({ method: 'POST' }), makeOpts({
+      body: 'plain text',
+      headers: { 'content-type': 'text/plain' },
+    }))
+
+    expect(result.ok).toBe(true)
+    expect(result.config?.headers).toEqual({ 'content-type': 'text/plain' })
   })
 
   it('handles missing servers gracefully', () => {

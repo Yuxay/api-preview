@@ -52,11 +52,13 @@ const requestOpen = ref(getUiState('detail-request-open', true));
 const responseOpen = ref(getUiState('detail-response-open', true));
 const pathOpen = ref(getUiState('detail-path-open', true));
 const queryOpen = ref(getUiState('detail-query-open', true));
+const cookieOpen = ref(getUiState('detail-cookie-open', false));
 const headersOpen = ref(getUiState('detail-headers-open', false));
 const bodyOpen = ref(getUiState('detail-body-open', true));
 
 const pathParams = ref<Record<string, string>>({});
 const queryParams = ref<Record<string, string>>({});
+const cookieParams = ref<Record<string, string>>({});
 const requestHeaders = ref<Record<string, string>>({});
 const requestBody = ref('');
 const bodyMode = ref<'form' | 'json'>('form');
@@ -75,6 +77,7 @@ for (const [key, state] of [
   ['detail-response-open', responseOpen],
   ['detail-path-open', pathOpen],
   ['detail-query-open', queryOpen],
+  ['detail-cookie-open', cookieOpen],
   ['detail-headers-open', headersOpen],
   ['detail-body-open', bodyOpen],
 ] as const) {
@@ -107,12 +110,19 @@ const pathParamsList = computed(() =>
 const queryParamsList = computed(() =>
   props.api.parameters.filter((param) => param.in === 'query'),
 );
+const cookieParamsList = computed(() =>
+  props.api.parameters.filter((param) => param.in === 'cookie'),
+);
 const headerParamsList = computed(() =>
   props.api.parameters.filter((param) => param.in === 'header'),
 );
-const isBodyMethod = computed(() =>
-  ['POST', 'PUT', 'PATCH'].includes(props.api.method.toUpperCase()),
-);
+const isBodyMethod = computed(() => {
+  const method = props.api.method.toUpperCase();
+  return (
+    !['GET', 'HEAD'].includes(method) &&
+    (Boolean(props.api.requestBody) || ['POST', 'PUT', 'PATCH'].includes(method))
+  );
+});
 const parsedResponse = computed(() =>
   response.value?.bodyEncoding === 'base64' || !response.value
     ? null
@@ -155,6 +165,9 @@ const pathParamsSubtitle = computed(() =>
 const queryParamsSubtitle = computed(() =>
   t('meta.parameterCount', { count: queryParamsList.value.length }),
 );
+const cookieParamsSubtitle = computed(() =>
+  t('meta.parameterCount', { count: cookieParamsList.value.length }),
+);
 const headersSubtitle = computed(() =>
   t('meta.headerCount', { count: Object.keys(requestHeaders.value).length }),
 );
@@ -189,6 +202,12 @@ watch(
       nextQueryParams[param.name] = stringifyValue(resolveExample(param));
     }
     queryParams.value = nextQueryParams;
+
+    const nextCookieParams: Record<string, string> = {};
+    for (const param of api.parameters.filter((item) => item.in === 'cookie')) {
+      nextCookieParams[param.name] = stringifyValue(resolveExample(param));
+    }
+    cookieParams.value = nextCookieParams;
 
     const nextHeaders: Record<string, string> = {};
     const acceptType = pickPreferredMediaType(collectResponseMediaTypes(api));
@@ -400,6 +419,7 @@ async function handleSend() {
     token: props.token,
     pathParams: pathParams.value,
     queryParams: queryParams.value,
+    cookieParams: cookieParams.value,
     headers: requestHeaders.value,
     body: isBodyMethod.value ? bodyStr : '',
   });
@@ -827,6 +847,22 @@ function isLongText(text: string): boolean {
                 :model-value="queryParams"
                 @update:model-value="
                   (value: Record<string, string>) => (queryParams = value)
+                "
+              />
+            </CollapsiblePanel>
+
+            <CollapsiblePanel
+              v-if="cookieParamsList.length > 0"
+              v-model="cookieOpen"
+              :title="t('apiDetail.cookieParams')"
+              :subtitle="cookieParamsSubtitle"
+              body-class="p-4"
+            >
+              <QueryParamsEditor
+                :params="cookieParamsList"
+                :model-value="cookieParams"
+                @update:model-value="
+                  (value: Record<string, string>) => (cookieParams = value)
                 "
               />
             </CollapsiblePanel>
