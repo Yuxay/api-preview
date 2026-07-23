@@ -104,6 +104,75 @@ afterEach(() => {
 })
 
 describe('offline source lifecycle', () => {
+  it('does not let a cancelled load clear a newer loading state', async () => {
+    let finishFirst!: (value: any) => void
+    let finishSecond!: (value: any) => void
+    mocks.loadSources
+      .mockImplementationOnce(() => new Promise((resolve) => { finishFirst = resolve }))
+      .mockImplementationOnce(() => new Promise((resolve) => { finishSecond = resolve }))
+    vi.stubGlobal('window', {
+      electronAPI: { cancelSwaggerFetch: vi.fn().mockResolvedValue({ success: true }) },
+    })
+
+    const scope = effectScope()
+    const state = scope.run(() => useSwagger())!
+    const firstLoad = state.addSource('First', 'https://example.com/first.json')
+    await state.cancelLoading()
+    const secondLoad = state.addSource('Second', 'https://example.com/second.json')
+
+    finishFirst({ sources: [], allApis: [], tagGroups: new Map(), errors: [] })
+    await firstLoad
+    expect(state.loading.value).toBe(true)
+
+    finishSecond({ sources: [], allApis: [], tagGroups: new Map(), errors: [] })
+    await secondLoad
+    expect(state.loading.value).toBe(false)
+    scope.stop()
+  })
+
+  it('does not let a cancelled cache fallback overwrite a newer load', async () => {
+    let finishFallback!: (value: CachedSource) => void
+    mocks.getCachedSource.mockImplementationOnce(
+      () => new Promise<CachedSource>((resolve) => { finishFallback = resolve }),
+    )
+    const secondSource: SwaggerSource = {
+      ...cachedSource,
+      id: 'src-valid',
+      name: 'Second',
+      status: 'loaded',
+    }
+    mocks.loadSources
+      .mockResolvedValueOnce({
+        sources: [failedSource('First')],
+        allApis: [],
+        tagGroups: new Map(),
+        errors: ['First: offline'],
+      })
+      .mockResolvedValueOnce({
+        sources: [secondSource],
+        allApis: secondSource.apis,
+        tagGroups: new Map(),
+        errors: [],
+      })
+    vi.stubGlobal('window', {
+      electronAPI: { cancelSwaggerFetch: vi.fn().mockResolvedValue({ success: true }) },
+    })
+
+    const scope = effectScope()
+    const state = scope.run(() => useSwagger())!
+    const firstLoad = state.addSource('First', 'https://example.com/first.json')
+    await vi.waitFor(() => expect(mocks.getCachedSource).toHaveBeenCalledOnce())
+    await state.cancelLoading()
+    await state.addSource('Second', 'https://example.com/second.json')
+
+    finishFallback(cachedSource)
+    await firstLoad
+
+    expect(state.sources.value).toHaveLength(1)
+    expect(state.sources.value[0].name).toBe('Second')
+    scope.stop()
+  })
+
   it('reports cache write failures instead of claiming persistence', async () => {
     const loaded: SwaggerSource = {
       id: cachedSource.sourceId,

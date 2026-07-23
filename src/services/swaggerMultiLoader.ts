@@ -142,15 +142,11 @@ async function loadSingleSource(
 
   // 处理示例项目（example:// 协议）
   if (input.url.startsWith('example://')) {
-    if (window.electronAPI?.loadExampleSpec) {
-      raw = await window.electronAPI.loadExampleSpec();
-    } else {
-      const bundledSpec = getBundledExampleSpec(input.url);
-      if (!bundledSpec) {
-        throw new Error(translate('errors.exampleUnavailable'));
-      }
-      raw = { success: true, data: bundledSpec };
+    const bundledSpec = getBundledExampleSpec(input.url);
+    if (!bundledSpec) {
+      throw new Error(translate('errors.exampleUnavailable'));
     }
+    raw = { success: true, data: bundledSpec };
   } else if (window.electronAPI) {
     raw = await window.electronAPI.fetchSwagger(
       input.url,
