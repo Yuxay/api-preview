@@ -268,11 +268,14 @@ function downloadOutput() {
     @click.self="emit('close')"
   >
     <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="api-export-title"
       class="popover-surface flex h-full max-h-[88vh] w-full max-w-6xl flex-col overflow-hidden"
     >
       <div class="panel-header px-5">
         <div>
-          <h3 class="panel-title">{{ t('aiExport.title') }}</h3>
+          <h3 id="api-export-title" class="panel-title">{{ t('aiExport.title') }}</h3>
           <p class="panel-description">{{ t('aiExport.description') }}</p>
         </div>
         <button

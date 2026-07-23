@@ -138,7 +138,10 @@ function onDrop(targetId: string) {
           <div
             v-for="(source, index) in sources"
             :key="source.id"
-            class="group cursor-pointer rounded-lg border transition"
+            role="button"
+            tabindex="0"
+            :aria-pressed="selectedSource.includes(source.id)"
+            class="group cursor-pointer rounded-lg border transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-400"
             :class="
               selectedSource.includes(source.id)
                 ? [
@@ -168,6 +171,8 @@ function onDrop(targetId: string) {
             @dragend="onDragEnd"
             @drop.prevent="onDrop(source.id)"
             @click="emit('select-source', source.id)"
+            @keydown.enter.self="emit('select-source', source.id)"
+            @keydown.space.self.prevent="emit('select-source', source.id)"
           >
             <div class="flex items-center gap-2 px-3 py-2">
               <div class="flex min-w-0 flex-1 items-center gap-2">
@@ -232,7 +237,7 @@ function onDrop(targetId: string) {
               <button
                 v-if="renamingId !== source.id"
                 type="button"
-                class="icon-button icon-button-xs shrink-0 opacity-0 group-hover:opacity-100"
+                class="icon-button icon-button-xs shrink-0 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100"
                 :title="t('common.rename')"
                 @click.stop="startRename(source.id, source.name)"
               >
@@ -241,7 +246,7 @@ function onDrop(targetId: string) {
 
               <button
                 type="button"
-                class="icon-button icon-button-xs icon-button-danger shrink-0 opacity-0 group-hover:opacity-100"
+                class="icon-button icon-button-xs icon-button-danger shrink-0 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100"
                 :title="t('common.remove')"
                 @click.stop="emit('remove-source', source.id)"
               >

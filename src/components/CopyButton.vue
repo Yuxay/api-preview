@@ -23,7 +23,7 @@ async function copy() {
 <template>
   <button
     type="button"
-    class="ml-1.5 inline-flex cursor-pointer align-middle opacity-0 transition-opacity group-hover:opacity-100"
+    class="ml-1.5 inline-flex cursor-pointer align-middle opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100"
     style="color: var(--ui-text-soft)"
     :title="title"
     @click.stop="copy"

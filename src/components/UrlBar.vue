@@ -55,8 +55,15 @@ const showAddDialog = ref(false);
 const showSettings = ref(false);
 const showToken = ref(false);
 const collapsed = ref(getUiState('searchbar-collapsed', false));
+const reloading = ref(false);
 
 watch(collapsed, (value) => saveUiState('searchbar-collapsed', value));
+watch(
+  () => props.loading,
+  (loading) => {
+    if (!loading) reloading.value = false;
+  },
+);
 const pendingName = ref('');
 const nameInputEl = ref<HTMLInputElement | null>(null);
 
@@ -167,6 +174,11 @@ function onSearchInput(event: Event) {
 function clearSearch() {
   searchInput.value = '';
   emit('update:searchQuery', '');
+}
+
+function onReload() {
+  reloading.value = true;
+  emit('reload');
 }
 
 function switchLocale(nextLocale: Locale) {
@@ -491,7 +503,7 @@ const themeOptions: { mode: ThemeMode; key: string }[] = [
           type="button"
           class="toolbar-button h-9 w-9 shrink-0 px-0"
           :title="loading ? t('common.cancel') : t('common.refresh')"
-          @click="loading ? emit('cancel-loading') : emit('reload')"
+          @click="loading ? emit('cancel-loading') : onReload()"
         >
           <AppIcon :name="loading ? 'x' : 'refresh-cw'" :size="16" />
         </button>
@@ -583,6 +595,13 @@ const themeOptions: { mode: ThemeMode; key: string }[] = [
     </div>
 
     <!-- 浮层点击外部关闭遮罩 -->
+    <progress
+      v-if="reloading"
+      class="absolute inset-x-0 bottom-0 h-0.5 w-full"
+      :aria-label="t('app.loadingDocs')"
+      style="accent-color: var(--ui-accent)"
+    />
+
     <div
       v-if="showSettings || showToken"
       class="fixed inset-0 z-40"
@@ -595,8 +614,13 @@ const themeOptions: { mode: ThemeMode; key: string }[] = [
       class="overlay-backdrop-strong fixed inset-0 z-[60] flex items-start justify-center px-4 pt-28"
       @click.self="cancelAdd"
     >
-      <div class="popover-surface w-full max-w-md p-5">
-        <h3 class="text-sm font-semibold" style="color: var(--ui-text)">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="add-source-title"
+        class="popover-surface w-full max-w-md p-5"
+      >
+        <h3 id="add-source-title" class="text-sm font-semibold" style="color: var(--ui-text)">
           {{ t('urlBar.addSourceTitle') }}
         </h3>
         <p class="mt-1 break-all text-xs" style="color: var(--ui-text-soft)">

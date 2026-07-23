@@ -42,6 +42,10 @@ const sourceServerMap = computed(() => {
   return map;
 });
 
+const searchScoreMap = computed(() =>
+  new Map(props.searchResults.map((item) => [item.api.id, item.score])),
+);
+
 function fullUrl(api: ApiItem): string {
   return joinUrl(sourceServerMap.value.get(api.sourceId || '') || '', api.path);
 }
@@ -52,7 +56,7 @@ function isImpacted(api: ApiItem): boolean {
 }
 
 function searchScore(apiId: string) {
-  return props.searchResults.find((item) => item.api.id === apiId)?.score || 0;
+  return searchScoreMap.value.get(apiId) || 0;
 }
 </script>
 
@@ -118,7 +122,8 @@ function searchScore(apiId: string) {
             : 'border-l-2 border-l-transparent',
         ]"
         @click="emit('select', api)"
-        @keydown.enter="emit('select', api)"
+        @keydown.enter.self="emit('select', api)"
+        @keydown.space.self.prevent="emit('select', api)"
       >
         <div class="flex flex-col gap-2">
           <span class="method-chip w-fit" :class="getMethodColor(api.method)">
@@ -142,7 +147,7 @@ function searchScore(apiId: string) {
             <CopyButton :value="api.path" :title="t('common.copyPath')" />
             <button
               type="button"
-              class="inline-flex cursor-pointer align-middle opacity-0 transition-opacity group-hover:opacity-100"
+              class="inline-flex cursor-pointer align-middle opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100"
               style="color: var(--ui-text-soft)"
               :title="t('aiExport.quickExport')"
               @click.stop="emit('export-api', api)"
