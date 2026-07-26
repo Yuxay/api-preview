@@ -14,10 +14,6 @@ const props = defineProps<{
   diff: DiffResult;
 }>();
 
-const emit = defineEmits<{
-  close: [];
-}>();
-
 type TabKey = 'added' | 'removed' | 'modified' | 'schema';
 type SelectableItem =
   | { kind: 'api'; key: string; item: ApiDiffItem }
@@ -30,12 +26,6 @@ const { t } = useI18n();
 watch(activeTab, (value) => {
   saveUiState(`diff-tab:${props.diff.sourceId}`, value);
 });
-
-const savedTab = getUiState<TabKey>(
-  `diff-tab:${props.diff.sourceId}`,
-  'modified',
-);
-activeTab.value = savedTab;
 
 const filteredApis = computed<ApiDiffItem[]>(() => {
   if (activeTab.value === 'schema') return [];
@@ -59,6 +49,33 @@ const listItems = computed<SelectableItem[]>(() => {
     item,
   }));
 });
+
+function tabItemCount(tab: TabKey): number {
+  if (tab === 'schema') return schemaItems.value.length;
+  return props.diff.apis.filter((item) => item.type === tab).length;
+}
+
+function resolveAvailableTab(preferred: TabKey): TabKey {
+  if (tabItemCount(preferred) > 0) return preferred;
+  return (
+    (['modified', 'added', 'removed', 'schema'] as TabKey[]).find(
+      (tab) => tabItemCount(tab) > 0,
+    ) || preferred
+  );
+}
+
+const savedTab = getUiState<TabKey>(
+  `diff-tab:${props.diff.sourceId}`,
+  'modified',
+);
+activeTab.value = resolveAvailableTab(savedTab);
+
+watch(
+  () => props.diff,
+  () => {
+    activeTab.value = resolveAvailableTab(activeTab.value);
+  },
+);
 
 watch(
   listItems,
@@ -125,15 +142,25 @@ function diffTypeLabel(type: string) {
 </script>
 
 <template>
-  <section class="panel-surface overflow-hidden">
+  <section
+    class="panel-surface flex h-full min-h-0 flex-col overflow-hidden"
+    style="
+      border-color: color-mix(
+        in srgb,
+        var(--ui-warning) 38%,
+        var(--ui-border)
+      );
+      box-shadow:
+        var(--ui-shadow),
+        inset 3px 0 0
+          color-mix(in srgb, var(--ui-warning) 68%, transparent);
+    "
+  >
     <div class="panel-header panel-header-compact items-center">
       <div>
         <p class="panel-kicker">{{ t('common.diff') }}</p>
         <h3 class="panel-title">{{ diff.sourceName }}</h3>
       </div>
-      <button type="button" class="ghost-button" @click="emit('close')">
-        {{ t('common.close') }}
-      </button>
     </div>
 
     <div
@@ -191,11 +218,15 @@ function diffTypeLabel(type: string) {
       </button>
     </div>
 
-    <div class="grid min-h-[20rem] grid-cols-[320px_minmax(0,1fr)]">
-      <div class="panel-divider border-r">
+    <div
+      class="grid min-h-0 flex-1 grid-cols-[minmax(220px,280px)_minmax(0,1fr)] xl:grid-cols-[320px_minmax(0,1fr)]"
+    >
+      <div
+        class="panel-divider flex min-h-0 flex-col overflow-hidden border-r"
+      >
         <div
           v-if="activeTab === 'schema' && impactedKeys.length > 0"
-          class="panel-divider border-b px-4 py-3"
+          class="panel-divider max-h-[40%] shrink-0 overflow-auto border-b px-4 py-3"
           style="
             background-color: color-mix(
               in srgb,
@@ -221,7 +252,7 @@ function diffTypeLabel(type: string) {
           </div>
         </div>
 
-        <div v-if="listItems.length > 0" class="max-h-[28rem] overflow-auto">
+        <div v-if="listItems.length > 0" class="min-h-0 flex-1 overflow-auto">
           <button
             v-for="entry in listItems"
             :key="entry.key"
@@ -303,12 +334,12 @@ function diffTypeLabel(type: string) {
           </button>
         </div>
 
-        <div v-else class="table-empty">
+        <div v-else class="table-empty flex-1">
           {{ t('diff.emptyCategory') }}
         </div>
       </div>
 
-      <div class="max-h-[28rem] overflow-auto p-4">
+      <div class="min-h-0 overflow-auto p-4">
         <div v-if="selectedItem" class="space-y-4">
           <template v-if="selectedItem.kind === 'api'">
             <div

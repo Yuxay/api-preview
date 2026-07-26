@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue';
+import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import { useSwagger } from '@/composables/useSwagger';
 import { useTheme, type ThemeMode } from '@/composables/useTheme';
 import { getToken, getUiState, saveToken, saveUiState } from '@/utils/storage';
@@ -118,6 +118,7 @@ async function onInstallUpdate() {
 }
 
 function onSelectSource(id: string) {
+  showDiff.value = false;
   if (id === '__ALL__') {
     selectedSource.value = [];
   } else {
@@ -132,8 +133,28 @@ function onSelectSource(id: string) {
   selectedTag.value = '';
 }
 
+function onSelectTag(tag: string) {
+  showDiff.value = false;
+  selectTag(tag);
+}
+
+function onSelectApi(api: ApiItem) {
+  showDiff.value = false;
+  selectApi(api);
+}
+
 function toggleDiff() {
   showDiff.value = !showDiff.value;
+}
+
+async function closeDiff() {
+  showDiff.value = false;
+  await nextTick();
+  document
+    .querySelector<HTMLButtonElement>(
+      '[data-diff-toggle], [data-toolbar-expand]',
+    )
+    ?.focus();
 }
 
 const currentServers = computed(() => {
@@ -173,9 +194,27 @@ const impactedKeys = computed<Set<string>>(() => {
 const diffChangeCount = computed(() =>
   diffResults.value.reduce(
     (sum, diff) =>
-      sum + diff.summary.added + diff.summary.removed + diff.summary.modified,
+      sum +
+      diff.summary.added +
+      diff.summary.removed +
+      diff.summary.modified +
+      diff.schemas.length,
     0,
   ),
+);
+
+const visibleDiffResults = computed(() =>
+  diffResults.value.filter(
+    (diff) =>
+      diff.summary.added > 0 ||
+      diff.summary.removed > 0 ||
+      diff.summary.modified > 0 ||
+      diff.schemas.length > 0,
+  ),
+);
+
+const diffWorkspaceOpen = computed(
+  () => showDiff.value && visibleDiffResults.value.length > 0,
 );
 
 const updaterSupported = computed(() => updaterState.value?.supported ?? false);
@@ -558,7 +597,8 @@ function expandApiList() {
             :api-count="totalApiCount"
             :tag-counts="tagCounts"
             :diff-results="diffResults"
-            @select-tag="selectTag"
+            :diff-mode="diffWorkspaceOpen"
+            @select-tag="onSelectTag"
             @select-source="onSelectSource"
             @remove-source="(id: string) => removeSource(id)"
             @rename-source="
@@ -592,7 +632,8 @@ function expandApiList() {
             :search-query="searchQuery"
             :sources="sources"
             :impacted-keys="impactedKeys"
-            @select="selectApi"
+            :diff-mode="diffWorkspaceOpen"
+            @select="onSelectApi"
             @export-api="(api: ApiItem) => openExport([api])"
             @toggle-collapse="collapseApiList"
           />
@@ -609,35 +650,55 @@ function expandApiList() {
             <AppIcon name="chevron-right" :size="14" class="shrink-0" />
           </button>
 
-          <div class="flex min-h-0 min-w-0 flex-col gap-3 overflow-hidden">
-            <ApiDetail
-              v-if="selectedApi"
-              :api="selectedApi"
-              :servers="currentServers"
-              :token="globalToken"
-              @export-api="(api: ApiItem) => openExport([api])"
-            />
-
+          <div class="flex min-h-0 min-w-0 flex-col overflow-hidden">
             <div
-              v-else
-              class="empty-state panel-surface flex flex-1 flex-col items-center justify-center gap-4 px-8"
+              v-if="diffWorkspaceOpen"
+              class="flex min-h-0 flex-1 flex-col gap-2"
             >
-              <div class="empty-state-icon h-14 w-14">
-                <AppIcon name="code" :size="28" />
+              <div class="flex shrink-0 justify-end">
+                <button
+                  type="button"
+                  class="icon-button icon-button-sm"
+                  :title="t('common.close')"
+                  :aria-label="t('common.close')"
+                  @click="closeDiff"
+                >
+                  <AppIcon name="x" :size="14" />
+                </button>
               </div>
-              <p>{{ t('app.selectApiHint') }}</p>
+
+              <div
+                class="grid min-h-0 flex-1 auto-rows-[minmax(36rem,1fr)] gap-3 overflow-auto pr-1"
+              >
+                <DiffView
+                  v-for="diff in visibleDiffResults"
+                  :key="diff.sourceId"
+                  :diff="diff"
+                />
+              </div>
             </div>
 
             <div
-              v-if="showDiff && diffResults.length > 0"
-              class="grid min-h-0 max-h-[32rem] gap-3 overflow-auto pr-1"
+              v-show="!diffWorkspaceOpen"
+              class="flex min-h-0 flex-1 flex-col"
             >
-              <DiffView
-                v-for="diff in diffResults"
-                :key="diff.sourceId"
-                :diff="diff"
-                @close="showDiff = false"
+              <ApiDetail
+                v-if="selectedApi"
+                :api="selectedApi"
+                :servers="currentServers"
+                :token="globalToken"
+                @export-api="(api: ApiItem) => openExport([api])"
               />
+
+              <div
+                v-else
+                class="empty-state panel-surface flex flex-1 flex-col items-center justify-center gap-4 px-8"
+              >
+                <div class="empty-state-icon h-14 w-14">
+                  <AppIcon name="code" :size="28" />
+                </div>
+                <p>{{ t('app.selectApiHint') }}</p>
+              </div>
             </div>
           </div>
         </div>

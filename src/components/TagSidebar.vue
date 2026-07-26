@@ -15,6 +15,7 @@ const props = defineProps<{
   apiCount: number;
   tagCounts: Record<string, number>;
   diffResults: DiffResult[];
+  diffMode?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -42,7 +43,12 @@ watch(tagsOpen, (value) => saveUiState('sidebar-tags-open', value));
 function sourceDiffCount(sourceId: string) {
   const diff = props.diffResults.find((item) => item.sourceId === sourceId);
   if (!diff) return 0;
-  return diff.summary.added + diff.summary.removed + diff.summary.modified;
+  return (
+    diff.summary.added +
+    diff.summary.removed +
+    diff.summary.modified +
+    diff.schemas.length
+  );
 }
 
 function startRename(id: string, name: string) {
@@ -123,7 +129,11 @@ function onDrop(targetId: string) {
           <button
             type="button"
             class="sidebar-item"
-            :class="selectedSource.length === 0 ? 'sidebar-item-active' : ''"
+            :class="
+              !diffMode && selectedSource.length === 0
+                ? 'sidebar-item-active'
+                : ''
+            "
             @click="emit('select-source', '__ALL__')"
           >
             <span class="h-2 w-2 rounded-full bg-slate-500" />
@@ -140,10 +150,10 @@ function onDrop(targetId: string) {
             :key="source.id"
             role="button"
             tabindex="0"
-            :aria-pressed="selectedSource.includes(source.id)"
+            :aria-pressed="!diffMode && selectedSource.includes(source.id)"
             class="group cursor-pointer rounded-lg border transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-400"
             :class="
-              selectedSource.includes(source.id)
+              !diffMode && selectedSource.includes(source.id)
                 ? [
                     getSourceColor(index).bg,
                     getSourceColor(index).border,
@@ -285,7 +295,11 @@ function onDrop(targetId: string) {
           <button
             type="button"
             class="sidebar-item"
-            :class="selectedTag === '__ALL__' ? 'sidebar-item-active' : ''"
+            :class="
+              !diffMode && selectedTag === '__ALL__'
+                ? 'sidebar-item-active'
+                : ''
+            "
             @click="emit('select-tag', '__ALL__')"
           >
             <span class="min-w-0 flex-1 truncate">{{
@@ -301,7 +315,9 @@ function onDrop(targetId: string) {
             :key="tag"
             type="button"
             class="sidebar-item"
-            :class="selectedTag === tag ? 'sidebar-item-active' : ''"
+            :class="
+              !diffMode && selectedTag === tag ? 'sidebar-item-active' : ''
+            "
             @click="emit('select-tag', tag)"
           >
             <span class="min-w-0 flex-1 truncate">{{ tag }}</span>

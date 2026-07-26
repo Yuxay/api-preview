@@ -16,6 +16,7 @@ const props = defineProps<{
   searchQuery: string;
   sources: SwaggerSource[];
   impactedKeys?: Set<string>;
+  diffMode?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -113,7 +114,7 @@ function searchScore(apiId: string) {
         tabindex="0"
         class="table-row group grid w-full grid-cols-[72px_minmax(0,1fr)_minmax(120px,0.8fr)] gap-3 py-3 pl-3.5 pr-4 text-left"
         :class="[
-          selectedApi?.id === api.id ? 'table-row-active' : '',
+          !diffMode && selectedApi?.id === api.id ? 'table-row-active' : '',
           api.sourceName && sources.length > 1
             ? [
                 'source-bar',

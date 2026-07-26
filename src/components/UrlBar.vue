@@ -208,6 +208,7 @@ const themeOptions: { mode: ThemeMode; key: string }[] = [
       <span class="panel-kicker">{{ t('urlBar.toolbar') }}</span>
       <button
         type="button"
+        data-toolbar-expand
         class="icon-button icon-button-sm"
         :title="t('common.show')"
         @click="collapsed = false"
@@ -511,11 +512,14 @@ const themeOptions: { mode: ThemeMode; key: string }[] = [
         <button
           v-if="hasDiff"
           type="button"
+          data-diff-toggle
           class="toolbar-button shrink-0"
           :class="showDiff ? 'status-badge-warning border-transparent' : ''"
+          :aria-pressed="showDiff"
+          :title="t('common.diff')"
           @click="emit('toggle-diff')"
         >
-          Diff
+          {{ t('common.diff') }}
           <span class="status-badge status-badge-neutral">{{ diffCount }}</span>
         </button>
 
