@@ -385,6 +385,7 @@ export function useSwagger(): UseSwaggerReturn {
       } else if (loadId === null && !activeLoad) {
         loading.value = false
       }
+      if (!activeLoad && !hasDiff.value) showDiff.value = false
     }
   }
 
@@ -400,7 +401,7 @@ export function useSwagger(): UseSwaggerReturn {
         selectedApi.value = null
       }
       diffResults.value = diffResults.value.filter((diff) => diff.sourceId !== id)
-      if (diffResults.value.length === 0) showDiff.value = false
+      if (!hasDiff.value) showDiff.value = false
       persistSourceOrder()
       await persistSourceList()
       recalcTagGroups()
@@ -508,6 +509,7 @@ export function useSwagger(): UseSwaggerReturn {
       } else if (loadId === null && !activeLoad) {
         loading.value = false
       }
+      if (!activeLoad && !hasDiff.value) showDiff.value = false
     }
   }
 
@@ -588,6 +590,7 @@ export function useSwagger(): UseSwaggerReturn {
       } else if (loadId === null && !activeLoad) {
         loading.value = false
       }
+      if (!activeLoad && !hasDiff.value) showDiff.value = false
     }
   }
 
